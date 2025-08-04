@@ -1,0 +1,156 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      UserRole @default(SUPPORTER)
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones para artistas
+  artistProfile ArtistProfile?
+  
+  // Relaciones para seguidores
+  following  Follows[] @relation("UserFollowing")
+  followers  Follows[] @relation("UserFollowers")
+  
+  // Relaciones para apoyo
+  supportTransactions SupportTransaction[]
+  
+  // Relaciones para posts
+  comments Comment[]
+
+  @@map("users")
+}
+
+model ArtistProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  bio             String?
+  category        String?
+  isVerified      Boolean  @default(false)
+  totalSupporters Int      @default(0)
+  totalEarnings   Float    @default(0)
+  goal            Float    @default(0)
+  socialLinks     Json?    // Instagram, Twitter, YouTube, etc.
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relaciones
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  supportTiers SupportTier[]
+  posts Post[]
+
+  @@map("artist_profiles")
+}
+
+model Follows {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  // Relaciones
+  follower  User @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@map("follows")
+}
+
+model SupportTier {
+  id               String   @id @default(cuid())
+  artistId         String
+  name             String
+  description      String?
+  price            Float
+  benefits         String[] // Array de beneficios
+  isActive         Boolean  @default(true)
+  maxSupporters    Int?
+  currentSupporters Int     @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relaciones
+  artist ArtistProfile @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  supportTransactions SupportTransaction[]
+
+  @@map("support_tiers")
+}
+
+model SupportTransaction {
+  id            String              @id @default(cuid())
+  supporterId   String
+  artistId      String
+  tierId        String?
+  amount        Float
+  status        TransactionStatus   @default(PENDING)
+  paymentMethod String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  // Relaciones
+  supporter User @relation(fields: [supporterId], references: [id], onDelete: Cascade)
+  tier      SupportTier? @relation(fields: [tierId], references: [id])
+
+  @@map("support_transactions")
+}
+
+model Post {
+  id           String   @id @default(cuid())
+  artistId     String
+  title        String
+  content      String
+  images       String[] // URLs de las imágenes
+  isExclusive  Boolean  @default(false)
+  tierRequired String?  // ID del tier requerido para ver el post
+  likes        Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relaciones
+  artist   ArtistProfile @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  comments Comment[]
+
+  @@map("posts")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+
+  // Relaciones
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
+}
+
+enum UserRole {
+  ARTIST
+  SUPPORTER
+  ADMIN
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+} 
