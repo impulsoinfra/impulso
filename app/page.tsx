@@ -114,7 +114,7 @@ export default function ImpulsoLanding() {
                 <div className="flex-shrink-0">
                   <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-pink-400 via-purple-400 to-green-400 p-1">
                     <Image
-                      src="/placeholder.svg?height=96&width=96"
+                      src="/images/artist-women.jpg"
                       alt="Valeria López"
                       width={96}
                       height={96}
@@ -133,7 +133,7 @@ export default function ImpulsoLanding() {
                   <div className="grid grid-cols-2 gap-4 mb-6">
                     <div className="aspect-square rounded-lg overflow-hidden">
                       <Image
-                        src="/placeholder.svg?height=200&width=200"
+                        src="/images/art1.jpg"
                         alt="Artwork 1"
                         width={200}
                         height={200}
@@ -142,7 +142,7 @@ export default function ImpulsoLanding() {
                     </div>
                     <div className="aspect-square rounded-lg overflow-hidden">
                       <Image
-                        src="/placeholder.svg?height=200&width=200"
+                        src="/images/art2.jpg"
                         alt="Artwork 2"
                         width={200}
                         height={200}
