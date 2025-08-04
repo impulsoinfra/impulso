@@ -124,7 +124,7 @@ export default function ImpulsoLanding() {
                 </div>
 
                 <div className="flex-grow">
-                  <h3 className="text-2xl font-bold text-blue-900 mb-1">Valeria López</h3>
+                  <h3 className="text-2xl font-bold text-blue-900 mb-1">Valeria Lopez</h3>
                   <p className="text-gray-600 mb-4">Artista de ilustración</p>
                   <p className="text-gray-700 mb-6">
                     ¡Hola! soy una ilustradora freelance. Si te gusta mi trabajo, apoyarme para poder seguir creando.
