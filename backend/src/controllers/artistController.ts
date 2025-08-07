@@ -4,7 +4,7 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 // Obtener todos los artistas
-export const getArtists = async (req: Request, res: Response) => {
+export const getArtists = async (_req: Request, res: Response): Promise<void> => {
   try {
     const artists = await prisma.artistProfile.findMany({
       include: {
@@ -29,9 +29,16 @@ export const getArtists = async (req: Request, res: Response) => {
 }
 
 // Obtener artista por ID
-export const getArtistById = async (req: Request, res: Response) => {
+export const getArtistById = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params
+
+    if (!id) {
+      res.status(400).json({
+        error: 'ID de artista requerido'
+      })
+      return
+    }
 
     const artist = await prisma.artistProfile.findUnique({
       where: { id },
@@ -50,9 +57,10 @@ export const getArtistById = async (req: Request, res: Response) => {
     })
 
     if (!artist) {
-      return res.status(404).json({
+      res.status(404).json({
         error: 'Artista no encontrado'
       })
+      return
     }
 
     res.json({ artist })
@@ -65,11 +73,25 @@ export const getArtistById = async (req: Request, res: Response) => {
 }
 
 // Actualizar perfil de artista
-export const updateArtist = async (req: Request, res: Response) => {
+export const updateArtist = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params
     const userId = req.user?.userId
     const { bio, category, goal, socialLinks } = req.body
+
+    if (!id) {
+      res.status(400).json({
+        error: 'ID de artista requerido'
+      })
+      return
+    }
+
+    if (!userId) {
+      res.status(401).json({
+        error: 'Usuario no autenticado'
+      })
+      return
+    }
 
     // Verificar que el usuario sea el propietario del perfil
     const artist = await prisma.artistProfile.findUnique({
@@ -77,9 +99,10 @@ export const updateArtist = async (req: Request, res: Response) => {
     })
 
     if (!artist || artist.userId !== userId) {
-      return res.status(403).json({
+      res.status(403).json({
         error: 'No tienes permisos para editar este perfil'
       })
+      return
     }
 
     const updatedArtist = await prisma.artistProfile.update({
@@ -105,15 +128,23 @@ export const updateArtist = async (req: Request, res: Response) => {
 }
 
 // Seguir/dejar de seguir artista
-export const followArtist = async (req: Request, res: Response) => {
+export const followArtist = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params
     const followerId = req.user?.userId
 
+    if (!id) {
+      res.status(400).json({
+        error: 'ID de artista requerido'
+      })
+      return
+    }
+
     if (!followerId) {
-      return res.status(401).json({
+      res.status(401).json({
         error: 'Usuario no autenticado'
       })
+      return
     }
 
     // Verificar si ya está siguiendo

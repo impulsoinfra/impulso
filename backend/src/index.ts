@@ -15,14 +15,14 @@ import supportRoutes from './routes/support'
 dotenv.config()
 
 const app = express()
-const PORT = process.env.PORT || 3001
+const PORT = process.env['PORT'] || 3001
 
 // Middleware de seguridad
 app.use(helmet())
 
 // Configuración de CORS
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: process.env['FRONTEND_URL'] || 'http://localhost:3000',
   credentials: true
 }))
 
@@ -48,25 +48,25 @@ app.use('/api/users', userRoutes)
 app.use('/api/support', supportRoutes)
 
 // Ruta de health check
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (_req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env['NODE_ENV'] || 'development'
   })
 })
 
 // Middleware de manejo de errores
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err.stack)
   res.status(500).json({ 
     error: 'Algo salió mal!',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Error interno del servidor'
+    message: process.env['NODE_ENV'] === 'development' ? err.message : 'Error interno del servidor'
   })
 })
 
 // Ruta 404 para endpoints no encontrados
-app.use('*', (req, res) => {
+app.use('*', (_req, res) => {
   res.status(404).json({ error: 'Endpoint no encontrado' })
 })
 
@@ -74,7 +74,7 @@ app.use('*', (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en puerto ${PORT}`)
   console.log(`📊 Health check: http://localhost:${PORT}/api/health`)
-  console.log(`🌍 Ambiente: ${process.env.NODE_ENV || 'development'}`)
+  console.log(`🌍 Ambiente: ${process.env['NODE_ENV'] || 'development'}`)
 })
 
 export default app 

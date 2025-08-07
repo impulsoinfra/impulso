@@ -11,7 +11,7 @@ interface RegisterRequest extends Request {
     name: string
     email: string
     password: string
-    role: 'artist' | 'supporter'
+    role: 'ARTIST' | 'SUPPORTER'
   }
 }
 
@@ -40,7 +40,7 @@ const generateTokens = (userId: string, role: string) => {
 }
 
 // Registrar nuevo usuario
-export const register = async (req: RegisterRequest, res: Response) => {
+export const register = async (req: RegisterRequest, res: Response): Promise<void> => {
   try {
     const { name, email, password, role } = req.body
 
@@ -50,9 +50,10 @@ export const register = async (req: RegisterRequest, res: Response) => {
     })
 
     if (existingUser) {
-      return res.status(400).json({
+      res.status(400).json({
         error: 'El email ya está registrado'
       })
+      return
     }
 
     // Encriptar contraseña
@@ -90,7 +91,7 @@ export const register = async (req: RegisterRequest, res: Response) => {
 }
 
 // Login de usuario
-export const login = async (req: LoginRequest, res: Response) => {
+export const login = async (req: LoginRequest, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body
 
@@ -100,18 +101,20 @@ export const login = async (req: LoginRequest, res: Response) => {
     })
 
     if (!user) {
-      return res.status(401).json({
+      res.status(401).json({
         error: 'Credenciales inválidas'
       })
+      return
     }
 
     // Verificar contraseña
     const isValidPassword = await bcrypt.compare(password, user.password)
 
     if (!isValidPassword) {
-      return res.status(401).json({
+      res.status(401).json({
         error: 'Credenciales inválidas'
       })
+      return
     }
 
     // Generar tokens
@@ -136,7 +139,7 @@ export const login = async (req: LoginRequest, res: Response) => {
 }
 
 // Logout
-export const logout = async (req: Request, res: Response) => {
+export const logout = async (_req: Request, res: Response): Promise<void> => {
   try {
     // En una implementación real, aquí invalidarías el refresh token
     res.json({
@@ -151,14 +154,15 @@ export const logout = async (req: Request, res: Response) => {
 }
 
 // Refresh token
-export const refreshToken = async (req: Request, res: Response) => {
+export const refreshToken = async (req: Request, res: Response): Promise<void> => {
   try {
     const { refreshToken } = req.body
 
     if (!refreshToken) {
-      return res.status(401).json({
+      res.status(401).json({
         error: 'Refresh token requerido'
       })
+      return
     }
 
     // Verificar refresh token
@@ -173,9 +177,10 @@ export const refreshToken = async (req: Request, res: Response) => {
     })
 
     if (!user) {
-      return res.status(401).json({
+      res.status(401).json({
         error: 'Usuario no encontrado'
       })
+      return
     }
 
     // Generar nuevos tokens

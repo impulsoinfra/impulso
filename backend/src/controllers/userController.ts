@@ -4,14 +4,15 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 // Obtener perfil del usuario
-export const getProfile = async (req: Request, res: Response) => {
+export const getProfile = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user?.userId
 
     if (!userId) {
-      return res.status(401).json({
+      res.status(401).json({
         error: 'Usuario no autenticado'
       })
+      return
     }
 
     const user = await prisma.user.findUnique({
@@ -28,9 +29,10 @@ export const getProfile = async (req: Request, res: Response) => {
     })
 
     if (!user) {
-      return res.status(404).json({
+      res.status(404).json({
         error: 'Usuario no encontrado'
       })
+      return
     }
 
     res.json({ user })
@@ -43,15 +45,16 @@ export const getProfile = async (req: Request, res: Response) => {
 }
 
 // Actualizar perfil del usuario
-export const updateProfile = async (req: Request, res: Response) => {
+export const updateProfile = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user?.userId
     const { name, avatar } = req.body
 
     if (!userId) {
-      return res.status(401).json({
+      res.status(401).json({
         error: 'Usuario no autenticado'
       })
+      return
     }
 
     const updatedUser = await prisma.user.update({

@@ -4,15 +4,16 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 // Crear una transacción de apoyo
-export const createSupport = async (req: Request, res: Response) => {
+export const createSupport = async (req: Request, res: Response): Promise<void> => {
   try {
     const { artistId, amount, tierId } = req.body
     const supporterId = req.user?.userId
 
     if (!supporterId) {
-      return res.status(401).json({
+      res.status(401).json({
         error: 'Usuario no autenticado'
       })
+      return
     }
 
     // Crear transacción de apoyo
@@ -40,14 +41,15 @@ export const createSupport = async (req: Request, res: Response) => {
 }
 
 // Obtener historial de apoyos del usuario
-export const getSupportHistory = async (req: Request, res: Response) => {
+export const getSupportHistory = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user?.userId
 
     if (!userId) {
-      return res.status(401).json({
+      res.status(401).json({
         error: 'Usuario no autenticado'
       })
+      return
     }
 
     const history = await prisma.supportTransaction.findMany({

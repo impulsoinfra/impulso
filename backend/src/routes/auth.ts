@@ -19,8 +19,8 @@ const registerValidation = [
     .isLength({ min: 8 })
     .withMessage('La contraseña debe tener al menos 8 caracteres'),
   body('role')
-    .isIn(['artist', 'supporter'])
-    .withMessage('El rol debe ser artist o supporter')
+    .isIn(['ARTIST', 'SUPPORTER'])
+    .withMessage('El rol debe ser ARTIST o SUPPORTER')
 ]
 
 // Validación para login
