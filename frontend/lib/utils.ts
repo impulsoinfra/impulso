@@ -61,17 +61,6 @@ export function generateSlug(text: string): string {
     .replace(/(^-|-$)/g, '')
 }
 
-// Función para validar email
-export function isValidEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  return emailRegex.test(email)
-}
-
-// Función para validar contraseña
-export function isValidPassword(password: string): boolean {
-  return password.length >= 8
-}
-
 // Función para generar ID único
 export function generateId(): string {
   return Math.random().toString(36).substr(2, 9)
@@ -101,16 +90,6 @@ export function getInitials(name: string): string {
     .join('')
     .toUpperCase()
     .slice(0, 2)
-}
-
-// Función para validar URL
-export function isValidUrl(url: string): boolean {
-  try {
-    new URL(url)
-    return true
-  } catch {
-    return false
-  }
 }
 
 // Función para obtener color basado en string

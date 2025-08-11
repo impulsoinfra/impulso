@@ -7,8 +7,13 @@ import { Footer } from '@/components/layout/footer'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { User, Palette, Heart, Settings, LogOut } from 'lucide-react'
+import { User, Palette, Heart, Settings, LogOut, Loader2, Plus, DollarSign } from 'lucide-react'
 import { ROUTES } from '@/lib/constants'
+import { usersApi, UserStats } from '@/lib/api'
+import { useState, useEffect } from 'react'
+import { CreatePostDialog } from '@/components/posts/create-post-dialog'
+import { MyPostsList } from '@/components/posts/my-posts-list'
+import { EarningsCard } from '@/components/dashboard/earnings-card'
 
 export default function DashboardPage() {
   return (
@@ -20,10 +25,43 @@ export default function DashboardPage() {
 
 function DashboardContent() {
   const { user, profile, signOut } = useAuth()
+  const [stats, setStats] = useState<UserStats | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Cargar estadísticas del usuario
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!user) return
+      
+      try {
+        setLoading(true)
+        const response = await usersApi.getUserStats()
+        setStats(response.stats)
+      } catch (err) {
+        setError('Error al cargar estadísticas')
+        console.error('Error fetching stats:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchStats()
+  }, [user])
 
   const handleLogout = async () => {
     await signOut()
     // El ProtectedRoute redirigirá automáticamente al login
+  }
+
+  const handlePostCreated = () => {
+    // Recargar estadísticas cuando se crea una nueva publicación
+    if (stats) {
+      setStats({
+        ...stats,
+        totalPosts: stats.totalPosts + 1
+      })
+    }
   }
 
   if (!profile) {
@@ -67,15 +105,15 @@ function DashboardContent() {
                 </Badge>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  {profile.role === 'artist' ? '🎨' : '❤️'}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {profile.role === 'artist' 
-                    ? 'Compartí tu arte y recibí apoyo' 
-                    : 'Apoyá a tus artistas favoritos'
-                  }
-                </p>
+                                  <div className="text-2xl font-bold">
+                    {profile.role === 'artist' ? '🎨' : '❤️'}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {profile.role === 'artist' 
+                      ? 'Compartí tu arte y recibí apoyo' 
+                      : 'Apoyá a tus artistas favoritos'
+                    }
+                  </p>
               </CardContent>
             </Card>
 
@@ -101,7 +139,7 @@ function DashboardContent() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {Math.ceil((Date.now() - new Date(profile.created_at).getTime()) / (1000 * 60 * 60 * 24))} días
+                  {stats ? stats.daysAsMember : '...'} días
                 </div>
                 <p className="text-xs text-muted-foreground">
                   En la comunidad
@@ -114,13 +152,14 @@ function DashboardContent() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             {profile.role === 'artist' ? (
               <>
-                <Button variant="outline" className="h-24 flex-col space-y-2">
-                  <Palette className="h-6 w-6" />
-                  <span>Subir Contenido</span>
-                </Button>
+                <CreatePostDialog onPostCreated={handlePostCreated} />
                 <Button variant="outline" className="h-24 flex-col space-y-2">
                   <Heart className="h-6 w-6" />
                   <span>Ver Seguidores</span>
+                </Button>
+                <Button variant="outline" className="h-24 flex-col space-y-2">
+                  <DollarSign className="h-6 w-6" />
+                  <span>Ver Ganancias</span>
                 </Button>
                 <Button variant="outline" className="h-24 flex-col space-y-2">
                   <Settings className="h-6 w-6" />
@@ -161,31 +200,68 @@ function DashboardContent() {
             )}
           </div>
 
-          {/* Estadísticas */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Actividad Reciente</CardTitle>
-                <CardDescription>
-                  Tu actividad en la plataforma
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Último acceso</span>
-                    <span className="text-sm font-medium">
-                      {new Date().toLocaleDateString('es-AR')}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Estado</span>
-                    <Badge variant="default">Activo</Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Contenido específico para artistas */}
+          {profile.role === 'artist' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              {/* Ganancias */}
+              <EarningsCard />
+              
+              {/* Estadísticas del usuario */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Actividad Reciente</CardTitle>
+                  <CardDescription>
+                    Tu actividad en la plataforma
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Cargando...</span>
+                    </div>
+                  ) : error ? (
+                    <div className="text-red-500 text-sm">
+                      Error al cargar estadísticas
+                    </div>
+                  ) : stats ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Último acceso</span>
+                        <span className="text-sm font-medium">
+                          {new Date(stats.lastLogin).toLocaleDateString('es-AR')}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Estado</span>
+                        <Badge variant="default">{stats.status}</Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Total seguidores</span>
+                        <span className="text-sm font-medium">{stats.totalSupporters}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Ganancias totales</span>
+                        <span className="text-sm font-medium text-green-600">
+                          ${stats.totalEarnings.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  ) : null}
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
+          {/* Mis Publicaciones (solo para artistas) */}
+          {profile.role === 'artist' && (
+            <div className="mb-8">
+              <MyPostsList />
+            </div>
+          )}
+
+          {/* Estadísticas generales */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
                 <CardTitle>Próximos Pasos</CardTitle>
@@ -226,6 +302,37 @@ function DashboardContent() {
                       </div>
                     </>
                   )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Información de la Cuenta</CardTitle>
+                <CardDescription>
+                  Detalles de tu membresía
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                                      <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Rol</span>
+                      <Badge variant={profile.role === 'artist' ? 'default' : 'secondary'}>
+                        {profile.role === 'artist' ? 'Artista' : 'Seguidor'}
+                      </Badge>
+                    </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Miembro desde</span>
+                    <span className="text-sm font-medium">
+                      {new Date(profile.created_at).toLocaleDateString('es-AR')}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Días en la comunidad</span>
+                    <span className="text-sm font-medium">
+                      {stats ? stats.daysAsMember : '...'} días
+                    </span>
+                  </div>
                 </div>
               </CardContent>
             </Card>

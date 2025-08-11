@@ -1,25 +1,112 @@
 import { Request, Response } from 'express'
 import { PrismaClient } from '@prisma/client'
+import { 
+  validatePaginationParams, 
+  validateSearchParams, 
+  validateSortParams
+} from '../utils/validation'
 
 const prisma = new PrismaClient()
 
-// Obtener todos los artistas
-export const getArtists = async (_req: Request, res: Response): Promise<void> => {
+// Obtener todos los artistas con filtros, búsqueda y ordenamiento
+export const getArtists = async (req: Request, res: Response): Promise<void> => {
   try {
-    const artists = await prisma.artistProfile.findMany({
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            avatar: true
+    const { 
+      search, 
+      category, 
+      sortBy = 'popular', 
+      page = '1', 
+      limit = '12' 
+    } = req.query
+
+    // Validar y sanitizar parámetros
+    const { page: pageNum, limit: limitNum } = validatePaginationParams(page as string, limit as string)
+    const sanitizedSearch = validateSearchParams(search as string)
+    const validSortBy = validateSortParams(sortBy as string)
+    
+    const skip = (pageNum - 1) * limitNum
+
+    // Construir filtros
+    const where: any = {}
+    
+    if (sanitizedSearch) {
+      where.OR = [
+        { user: { name: { contains: sanitizedSearch, mode: 'insensitive' } } },
+        { bio: { contains: sanitizedSearch, mode: 'insensitive' } }
+      ]
+    }
+    
+    if (category && category !== 'all') {
+      where.category = category
+    }
+
+    // Construir ordenamiento
+    let orderBy: any = {}
+    switch (validSortBy) {
+      case 'popular':
+        orderBy = { totalSupporters: 'desc' }
+        break
+      case 'earnings':
+        orderBy = { totalEarnings: 'desc' }
+        break
+      case 'name':
+        orderBy = { user: { name: 'asc' } }
+        break
+      case 'recent':
+        orderBy = { createdAt: 'desc' }
+        break
+      default:
+        orderBy = { totalSupporters: 'desc' }
+    }
+
+    // Obtener artistas con paginación
+    const [artists, total] = await Promise.all([
+      prisma.artistProfile.findMany({
+        where,
+        orderBy,
+        skip,
+        take: limitNum,
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatar: true
+            }
           }
         }
+      }),
+      prisma.artistProfile.count({ where })
+    ])
+
+    // Formatear respuesta
+    const artistsWithStats = artists.map((artist) => ({
+      id: artist.id,
+      name: artist.user.name,
+      category: artist.category,
+      avatar: artist.user.avatar,
+      bio: artist.bio,
+      isVerified: artist.isVerified,
+      totalSupporters: artist.totalSupporters,
+      totalEarnings: artist.totalEarnings,
+      createdAt: artist.createdAt,
+      updatedAt: artist.updatedAt
+    }))
+
+    const totalPages = Math.ceil(total / limitNum)
+
+    res.json({
+      artists: artistsWithStats,
+      pagination: {
+        currentPage: pageNum,
+        totalPages,
+        totalItems: total,
+        itemsPerPage: limitNum,
+        hasNextPage: pageNum < totalPages,
+        hasPrevPage: pageNum > 1
       }
     })
-
-    res.json({ artists })
   } catch (error) {
     console.error('Error al obtener artistas:', error)
     res.status(500).json({

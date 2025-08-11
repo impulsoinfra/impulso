@@ -10,6 +10,8 @@ import authRoutes from './routes/auth'
 import artistRoutes from './routes/artists'
 import userRoutes from './routes/users'
 import supportRoutes from './routes/support'
+import postRoutes from './routes/posts'
+import transactionRoutes from './routes/transactions'
 
 // Configuración de variables de entorno
 dotenv.config()
@@ -46,6 +48,8 @@ app.use('/api/auth', authRoutes)
 app.use('/api/artists', artistRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/support', supportRoutes)
+app.use('/api/posts', postRoutes)
+app.use('/api/transactions', transactionRoutes)
 
 // Ruta de health check
 app.get('/api/health', (_req, res) => {
