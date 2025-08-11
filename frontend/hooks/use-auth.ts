@@ -30,39 +30,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  useEffect(() => {
+    if (!isClient) return
+
     const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setSession(session)
-      setUser(session?.user ?? null)
-
-      if (session?.user) {
-        await loadUserProfile(session.user.id)
-      }
-
-      setLoading(false)
-    }
-
-    getInitialSession()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      try {
+        if (!supabase) {
+          console.warn('Supabase client not available during SSR')
+          setLoading(false)
+          return
+        }
+        
+        const { data: { session } } = await supabase.auth.getSession()
         setSession(session)
         setUser(session?.user ?? null)
 
         if (session?.user) {
           await loadUserProfile(session.user.id)
-        } else {
-          setProfile(null)
         }
 
         setLoading(false)
+      } catch (error) {
+        console.error('Error getting initial session:', error)
+        setLoading(false)
       }
-    )
+    }
 
-    return () => subscription.unsubscribe()
-  }, [])
+    getInitialSession()
+
+    if (supabase) {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          setSession(session)
+          setUser(session?.user ?? null)
+
+          if (session?.user) {
+            await loadUserProfile(session.user.id)
+          } else {
+            setProfile(null)
+          }
+
+          setLoading(false)
+        }
+      )
+
+      return () => subscription.unsubscribe()
+    }
+  }, [isClient])
 
   const loadUserProfile = async (userId: string) => {
     try {
@@ -109,10 +129,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const value = {
-    user,
-    profile,
-    session,
-    loading,
+    user: isClient ? user : null,
+    profile: isClient ? profile : null,
+    session: isClient ? session : null,
+    loading: isClient ? loading : true,
     signUp: handleSignUp,
     signIn: handleSignIn,
     signOut: handleSignOut,

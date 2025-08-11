@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Menu, X, User, LogOut } from 'lucide-react'
@@ -21,11 +21,19 @@ interface HeaderProps {
 
 export function Header({ user, onLogout }: HeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isClient, setIsClient] = useState(false)
   const pathname = usePathname()
-  const { user: authUser, profile, signOut } = useAuth()
+  
+  // Solo usar useAuth cuando estemos en el cliente
+  const authHook = useAuth()
+  const { user: authUser, profile, signOut } = isClient ? authHook : { user: null, profile: null, signOut: () => Promise.resolve({ error: null }) }
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   // Usar el usuario del contexto de autenticación si no se proporciona uno
-  const currentUser = user || (authUser && profile ? {
+  const currentUser = user || (isClient && authUser && profile ? {
     id: authUser.id,
     name: profile.name,
     role: profile.role
@@ -34,7 +42,7 @@ export function Header({ user, onLogout }: HeaderProps) {
   const handleLogout = async () => {
     if (onLogout) {
       onLogout()
-    } else {
+    } else if (isClient) {
       await signOut()
     }
   }

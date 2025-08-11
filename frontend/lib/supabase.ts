@@ -1,9 +1,20 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Solo crear el cliente si las variables de entorno están disponibles
+export const supabase = supabaseUrl && supabaseAnonKey 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null
+
+// Función helper para obtener el cliente de Supabase de manera segura
+function getSupabaseClient() {
+  if (!supabase) {
+    throw new Error('Supabase client is not available. Check your environment variables.')
+  }
+  return supabase
+}
 
 // Tipos para el usuario
 export interface UserProfile {
@@ -18,7 +29,8 @@ export interface UserProfile {
 // Función para registrar un nuevo usuario
 export async function signUp(email: string, password: string, name: string, role: 'artist' | 'supporter') {
   try {
-    const { data, error } = await supabase.auth.signUp({
+    const client = getSupabaseClient()
+    const { data, error } = await client.auth.signUp({
       email,
       password,
       options: {
@@ -45,7 +57,8 @@ export async function signUp(email: string, password: string, name: string, role
 // Función para iniciar sesión
 export async function signIn(email: string, password: string) {
   try {
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const client = getSupabaseClient()
+    const { data, error } = await client.auth.signInWithPassword({
       email,
       password
     })
@@ -63,7 +76,8 @@ export async function signIn(email: string, password: string) {
 // Función para cerrar sesión
 export async function signOut() {
   try {
-    const { error } = await supabase.auth.signOut()
+    const client = getSupabaseClient()
+    const { error } = await client.auth.signOut()
     if (error) {
       throw error
     }
@@ -76,7 +90,8 @@ export async function signOut() {
 // Función para obtener el usuario actual
 export async function getCurrentUser() {
   try {
-    const { data: { user }, error } = await supabase.auth.getUser()
+    const client = getSupabaseClient()
+    const { data: { user }, error } = await client.auth.getUser()
     if (error) {
       throw error
     }
@@ -89,7 +104,8 @@ export async function getCurrentUser() {
 // Función para obtener el perfil del usuario
 export async function getUserProfile(userId: string) {
   try {
-    const { data, error } = await supabase
+    const client = getSupabaseClient()
+    const { data, error } = await client
       .from('profiles')
       .select('*')
       .eq('id', userId)
@@ -108,7 +124,8 @@ export async function getUserProfile(userId: string) {
 // Función para actualizar el perfil del usuario
 export async function updateUserProfile(userId: string, updates: Partial<UserProfile>) {
   try {
-    const { data, error } = await supabase
+    const client = getSupabaseClient()
+    const { data, error } = await client
       .from('profiles')
       .update({
         ...updates,
