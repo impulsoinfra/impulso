@@ -11,6 +11,7 @@ import { Eye, EyeOff, Mail, Lock, ArrowLeft } from 'lucide-react'
 import { APP_NAME, ROUTES } from '@/lib/constants'
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
+import { useAuth } from '@/hooks/use-auth'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -20,6 +21,7 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   
   const router = useRouter()
+  const { signIn } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -27,14 +29,25 @@ export default function LoginPage() {
     setError('')
 
     try {
-      // Aquí iría la lógica de autenticación
-      // Por ahora simulamos un login exitoso
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Redirigir al dashboard después del login
-      router.push(ROUTES.DASHBOARD)
-    } catch (err) {
-      setError('Credenciales inválidas. Por favor, intentá de nuevo.')
+      const { data, error } = await signIn(email, password)
+
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          setError('Email o contraseña incorrectos. Por favor, intentá de nuevo.')
+        } else if (error.message.includes('Email not confirmed')) {
+          setError('Por favor, verificá tu email antes de iniciar sesión.')
+        } else {
+          setError(error.message || 'Error al iniciar sesión. Por favor, intentá de nuevo.')
+        }
+        return
+      }
+
+      if (data?.user) {
+        // Redirigir al dashboard después del login exitoso
+        router.push(ROUTES.DASHBOARD)
+      }
+    } catch (err: any) {
+      setError(err.message || 'Error al iniciar sesión. Por favor, intentá de nuevo.')
     } finally {
       setIsLoading(false)
     }

@@ -8,10 +8,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Eye, EyeOff, Mail, Lock, User, ArrowLeft } from 'lucide-react'
+import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, CheckCircle } from 'lucide-react'
 import { APP_NAME, ROUTES } from '@/lib/constants'
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
+import { useAuth } from '@/hooks/use-auth'
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -25,8 +26,10 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
   
   const router = useRouter()
+  const { signUp } = useAuth()
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -47,20 +50,38 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setSuccess(false)
 
     if (!validateForm()) return
 
     setIsLoading(true)
 
     try {
-      // Aquí iría la lógica de registro
-      // Por ahora simulamos un registro exitoso
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Redirigir al dashboard después del registro
-      router.push(ROUTES.DASHBOARD)
-    } catch (err) {
-      setError('Error al crear la cuenta. Por favor, intentá de nuevo.')
+      const { data, error } = await signUp(
+        formData.email,
+        formData.password,
+        formData.name,
+        formData.role
+      )
+
+      if (error) {
+        if (error.message.includes('User already registered')) {
+          setError('Ya existe una cuenta con este email. Por favor, iniciá sesión.')
+        } else if (error.message.includes('Password should be at least')) {
+          setError('La contraseña debe tener al menos 6 caracteres.')
+        } else {
+          setError(error.message || 'Error al crear la cuenta. Por favor, intentá de nuevo.')
+        }
+        return
+      }
+
+      if (data?.user) {
+        setSuccess(true)
+        // No redirigimos inmediatamente porque Supabase requiere confirmación de email
+        // El usuario verá un mensaje de éxito y podrá verificar su email
+      }
+    } catch (err: any) {
+      setError(err.message || 'Error al crear la cuenta. Por favor, intentá de nuevo.')
     } finally {
       setIsLoading(false)
     }
@@ -96,6 +117,20 @@ export default function RegisterPage() {
                 {error && (
                   <div className="p-3 bg-red-50 border border-red-200 rounded-md">
                     <p className="text-red-600 text-sm">{error}</p>
+                  </div>
+                )}
+                
+                {success && (
+                  <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                    <div className="flex items-center space-x-2">
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                      <div>
+                        <p className="text-green-800 font-medium">¡Cuenta creada exitosamente!</p>
+                        <p className="text-green-700 text-sm">
+                          Te enviamos un email de confirmación. Por favor, verificá tu email para activar tu cuenta.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 )}
                 

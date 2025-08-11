@@ -7,6 +7,7 @@ import { Menu, X, User, LogOut } from 'lucide-react'
 import { APP_NAME, ROUTES } from '@/lib/constants'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/hooks/use-auth'
 
 interface HeaderProps {
   user?: {
@@ -21,6 +22,22 @@ interface HeaderProps {
 export function Header({ user, onLogout }: HeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const pathname = usePathname()
+  const { user: authUser, profile, signOut } = useAuth()
+
+  // Usar el usuario del contexto de autenticación si no se proporciona uno
+  const currentUser = user || (authUser && profile ? {
+    id: authUser.id,
+    name: profile.name,
+    role: profile.role
+  } : null)
+
+  const handleLogout = async () => {
+    if (onLogout) {
+      onLogout()
+    } else {
+      await signOut()
+    }
+  }
 
   const isActive = (path: string) => pathname === path
 
@@ -60,19 +77,17 @@ export function Header({ user, onLogout }: HeaderProps) {
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center space-x-4">
-            {user ? (
+            {currentUser ? (
               <div className="flex items-center space-x-4">
                 <Link href={ROUTES.DASHBOARD}>
                   <Button variant="outline" size="sm">
                     <User className="h-4 w-4 mr-2" />
-                    {user.name}
+                    {currentUser.name}
                   </Button>
                 </Link>
-                {onLogout && (
-                  <Button variant="ghost" size="sm" onClick={onLogout}>
-                    <LogOut className="h-4 w-4" />
-                  </Button>
-                )}
+                <Button variant="ghost" size="sm" onClick={handleLogout}>
+                  <LogOut className="h-4 w-4" />
+                </Button>
               </div>
             ) : (
               <>
@@ -119,20 +134,18 @@ export function Header({ user, onLogout }: HeaderProps) {
                 </Link>
               ))}
               
-              {user ? (
+              {currentUser ? (
                 <div className="flex flex-col space-y-2 pt-4 border-t border-gray-100">
                   <Link href={ROUTES.DASHBOARD}>
                     <Button variant="outline" className="w-full justify-start">
                       <User className="h-4 w-4 mr-2" />
-                      {user.name}
+                      {currentUser.name}
                     </Button>
                   </Link>
-                  {onLogout && (
-                    <Button variant="ghost" className="w-full justify-start" onClick={onLogout}>
-                      <LogOut className="h-4 w-4 mr-2" />
-                      Cerrar sesión
-                    </Button>
-                  )}
+                  <Button variant="ghost" className="w-full justify-start" onClick={handleLogout}>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Cerrar sesión
+                  </Button>
                 </div>
               ) : (
                 <div className="flex flex-col space-y-2 pt-4 border-t border-gray-100">
