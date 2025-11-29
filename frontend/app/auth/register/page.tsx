@@ -106,9 +106,9 @@ export default function RegisterPage() {
                   <span className="text-lg font-bold text-blue-900">{APP_NAME}</span>
                 </div>
               </div>
-              <CardTitle className="text-2xl font-bold text-center">Crear cuenta</CardTitle>
+              <CardTitle className="text-2xl font-bold text-center">Crea tu cuenta</CardTitle>
               <CardDescription className="text-center">
-                Unite a nuestra comunidad de artistas y seguidores
+                Unite a la comunidad de emprendedores e inversores para impulsar proyectos reales.
               </CardDescription>
             </CardHeader>
             
@@ -226,9 +226,9 @@ export default function RegisterPage() {
                         className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
                       >
                         <div className="text-center">
-                          <div className="text-lg font-semibold">Seguidor</div>
+                          <div className="text-lg font-semibold">Inversor</div>
                           <div className="text-sm text-muted-foreground">
-                            Apoyá a tus artistas favoritos
+                            Descubrí emprendimientos y apoyalos con capital.
                           </div>
                         </div>
                       </Label>
@@ -240,9 +240,9 @@ export default function RegisterPage() {
                         className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
                       >
                         <div className="text-center">
-                          <div className="text-lg font-semibold">Artista</div>
+                          <div className="text-lg font-semibold">Emprendedor</div>
                           <div className="text-sm text-muted-foreground">
-                            Compartí tu arte y recibí apoyo
+                            Presentá tu proyecto y conseguí financiamiento.
                           </div>
                         </div>
                       </Label>
@@ -255,7 +255,7 @@ export default function RegisterPage() {
                   className="w-full bg-blue-600 hover:bg-blue-700"
                   disabled={isLoading}
                 >
-                  {isLoading ? 'Creando cuenta...' : 'Crear cuenta'}
+                  {isLoading ? 'Creando cuenta...' : 'Comenzar'}
                 </Button>
               </form>
               

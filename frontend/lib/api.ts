@@ -157,6 +157,7 @@ export const postsApi = {
     title: string
     content: string
     images?: string[]
+    videos?: string[]
     isExclusive?: boolean
     tierRequired?: string
   }): Promise<any> => {

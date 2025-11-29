@@ -1,6 +1,11 @@
 import { Request, Response } from 'express'
 import { PrismaClient } from '@prisma/client'
 import { isValidId, sanitizeText } from '../utils/validation'
+import { 
+  // determineMediaType,    // Comentado hasta configurar BD
+  cleanImageUrls, 
+  // cleanVideoUrls         // Comentado hasta configurar BD
+} from '../services/supabaseStorage'
 
 const prisma = new PrismaClient()
 
@@ -8,7 +13,14 @@ const prisma = new PrismaClient()
 export const createPost = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user?.userId
-    const { title, content, images, isExclusive, tierRequired } = req.body
+    const { 
+      title, 
+      content, 
+      images, 
+      // videos,           // Comentado hasta configurar BD
+      isExclusive, 
+      tierRequired 
+    } = req.body
 
     if (!userId) {
       res.status(401).json({
@@ -37,20 +49,36 @@ export const createPost = async (req: Request, res: Response): Promise<void> => 
       return
     }
 
-    if (!content || content.trim().length < 10 || content.trim().length > 2000) {
-      res.status(400).json({
-        error: 'El contenido debe tener entre 10 y 2000 caracteres'
-      })
-      return
-    }
+    // Validación temporal comentada hasta configurar la base de datos
+    // if (!content || content.trim().length < 10 || content.trim().length > 2000) {
+    //   res.status(400).json({
+    //     error: 'El contenido debe tener entre 10 y 2000 caracteres'
+    //   })
+    //   return
+    // }
 
-    // Crear la publicación
+    // Validar y limpiar URLs de imágenes
+    const cleanImages = cleanImageUrls(images || [])
+    
+    // Validar y limpiar URLs de videos de YouTube (comentado hasta configurar BD)
+    // const cleanVideos = cleanVideoUrls(videos || [])
+    
+    // Determinar el tipo de contenido (comentado hasta configurar BD)
+    // const mediaType = determineMediaType(
+    //   content.trim().length > 0,
+    //   cleanImages.length > 0,
+    //   cleanVideos.length > 0
+    // )
+
+    // Crear la publicación (campos nuevos comentados hasta configurar BD)
     const post = await prisma.post.create({
       data: {
         artistId: artistProfile.id,
         title: sanitizeText(title.trim()),
         content: sanitizeText(content.trim()),
-        images: images || [],
+        images: cleanImages,
+        // videos: cleanVideos,        // Comentado hasta configurar BD
+        // mediaType,                  // Comentado hasta configurar BD
         isExclusive: isExclusive || false,
         tierRequired: tierRequired || null
       },

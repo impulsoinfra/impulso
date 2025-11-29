@@ -8,12 +8,20 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Search, Filter, Heart, Users, Star, Loader2 } from 'lucide-react'
+import { Search, Filter, Users, Star, Loader2 } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 import { formatCurrency, formatNumber, getInitials } from '@/lib/utils'
-import { ARTIST_CATEGORIES } from '@/lib/constants'
 import { artistsApi, Artist, PaginatedResponse } from '@/lib/api'
+
+const PROJECT_SECTORS = [
+  'Tecnología',
+  'Manufactura',
+  'Agtech',
+  'Alimentos',
+  'Servicios',
+  'Impacto social'
+]
 
 export default function DiscoverPage() {
   const [searchTerm, setSearchTerm] = useState('')
@@ -26,8 +34,8 @@ export default function DiscoverPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Función para cargar artistas
-  const fetchArtists = async () => {
+  // Función para cargar proyectos
+  const fetchProjects = async () => {
     setLoading(true)
     setError(null)
     
@@ -43,23 +51,23 @@ export default function DiscoverPage() {
       setArtists(response.data)
       setPagination(response.pagination)
     } catch (err) {
-      setError('Error al cargar artistas')
+      setError('Error al cargar proyectos')
       console.error('Error fetching artists:', err)
     } finally {
       setLoading(false)
     }
   }
 
-  // Cargar artistas cuando cambien los filtros
+  // Cargar proyectos cuando cambien los filtros
   useEffect(() => {
     setCurrentPage(1) // Resetear a la primera página
-    fetchArtists()
+    fetchProjects()
   }, [searchTerm, selectedCategory, sortBy])
 
-  // Cargar artistas cuando cambie la página
+  // Cargar proyectos cuando cambie la página
   useEffect(() => {
     if (currentPage > 1) {
-      fetchArtists()
+      fetchProjects()
     }
   }, [currentPage])
 
@@ -72,7 +80,7 @@ export default function DiscoverPage() {
   // Función para aplicar filtros
   const handleFilterChange = () => {
     setCurrentPage(1)
-    fetchArtists()
+    fetchProjects()
   }
 
   return (
@@ -83,8 +91,8 @@ export default function DiscoverPage() {
         <div className="container mx-auto px-4">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Descubrí artistas</h1>
-            <p className="text-gray-600">Encontrá creadores increíbles y apoyá su trabajo</p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Descubrí proyectos para invertir</h1>
+            <p className="text-gray-600">Encontrá emprendimientos en crecimiento y ayudalos a alcanzar sus metas</p>
           </div>
 
           {/* Filtros y búsqueda */}
@@ -94,7 +102,7 @@ export default function DiscoverPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Buscar artistas..."
+                  placeholder="Buscar proyectos o emprendimientos..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -104,11 +112,11 @@ export default function DiscoverPage() {
               {/* Categoría */}
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Todas las categorías" />
+                  <SelectValue placeholder="Todos los sectores" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todas las categorías</SelectItem>
-                  {ARTIST_CATEGORIES.map((category) => (
+                  <SelectItem value="all">Todos los sectores</SelectItem>
+                  {PROJECT_SECTORS.map((category) => (
                     <SelectItem key={category} value={category}>
                       {category}
                     </SelectItem>
@@ -122,10 +130,10 @@ export default function DiscoverPage() {
                   <SelectValue placeholder="Ordenar por" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="popular">Más populares</SelectItem>
-                  <SelectItem value="earnings">Mayor recaudación</SelectItem>
+                  <SelectItem value="popular">Mayor interés</SelectItem>
+                  <SelectItem value="earnings">Más recaudación</SelectItem>
                   <SelectItem value="name">Nombre A-Z</SelectItem>
-                  <SelectItem value="recent">Más recientes</SelectItem>
+                  <SelectItem value="recent">Recientes</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -146,7 +154,7 @@ export default function DiscoverPage() {
             <div className="flex justify-center py-12">
               <div className="flex items-center gap-2">
                 <Loader2 className="h-6 w-6 animate-spin" />
-                <span>Cargando artistas...</span>
+                <span>Cargando proyectos...</span>
               </div>
             </div>
           )}
@@ -157,9 +165,9 @@ export default function DiscoverPage() {
               <div className="text-red-500 mb-4">
                 <Search className="w-12 h-12 mx-auto" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Error al cargar artistas</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Error al cargar proyectos</h3>
               <p className="text-gray-600 mb-4">{error}</p>
-              <Button onClick={fetchArtists} variant="outline">
+              <Button onClick={fetchProjects} variant="outline">
                 Intentar de nuevo
               </Button>
             </div>
@@ -172,7 +180,7 @@ export default function DiscoverPage() {
                 <Card key={artist.id} className="overflow-hidden hover:shadow-lg transition-shadow">
                   <div className="relative">
                     <div className="aspect-video bg-gradient-to-br from-blue-100 to-purple-100">
-                      {/* Placeholder para imagen de artista */}
+                      {/* Placeholder para imagen de proyecto */}
                       <div className="w-full h-full flex items-center justify-center">
                         <Avatar className="w-16 h-16">
                           <AvatarImage src={artist.avatar} alt={artist.name} />
@@ -197,19 +205,19 @@ export default function DiscoverPage() {
                       <div className="flex-grow">
                         <h3 className="font-semibold text-gray-900 mb-1">{artist.name}</h3>
                         <Badge variant="outline" className="text-xs">
-                          {artist.category}
+                          {artist.category || 'Sector sin definir'}
                         </Badge>
                       </div>
                     </div>
                     
                     <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                      {artist.bio || 'Sin descripción disponible'}
+                      {artist.bio || 'Este proyecto todavía no agregó una descripción detallada.'}
                     </p>
                     
                     <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
                       <div className="flex items-center gap-1">
                         <Users className="w-4 h-4" />
-                        {formatNumber(artist.totalSupporters)}
+                        {formatNumber(artist.totalSupporters)} inversores
                       </div>
                       <div className="flex items-center gap-1">
                         <span className="font-medium text-green-600">
@@ -220,7 +228,7 @@ export default function DiscoverPage() {
                     
                     <Link href={`/artist/${artist.id}`}>
                       <Button className="w-full bg-blue-600 hover:bg-blue-700">
-                        Ver perfil
+                        Ver proyecto
                       </Button>
                     </Link>
                   </CardContent>
@@ -271,7 +279,7 @@ export default function DiscoverPage() {
               <div className="text-gray-400 mb-4">
                 <Search className="w-12 h-12 mx-auto" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No se encontraron artistas</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No se encontraron proyectos</h3>
               <p className="text-gray-600">Intentá ajustar los filtros de búsqueda</p>
             </div>
           )}

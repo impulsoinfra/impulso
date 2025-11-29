@@ -50,9 +50,9 @@ export function Header({ user, onLogout }: HeaderProps) {
   const isActive = (path: string) => pathname === path
 
   const navigationItems = [
-    { href: ROUTES.HOME, label: 'Inicio' },
-    { href: ROUTES.DISCOVER, label: 'Descubrir' },
-    { href: '/#como-funciona', label: '¿Cómo funciona?' },
+    { href: ROUTES.DISCOVER, label: 'Explorar' },
+    { href: '/#como-funciona', label: 'Cómo funciona' },
+    { href: '/#proyectos', label: 'Proyectos' },
   ]
 
   return (
@@ -87,6 +87,11 @@ export function Header({ user, onLogout }: HeaderProps) {
           <div className="hidden md:flex items-center space-x-4">
             {currentUser ? (
               <div className="flex items-center space-x-4">
+                <Link href={ROUTES.DASHBOARD}>
+                  <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                    Crear proyecto
+                  </Button>
+                </Link>
                 <Link href={ROUTES.DASHBOARD}>
                   <Button variant="outline" size="sm">
                     <User className="h-4 w-4 mr-2" />

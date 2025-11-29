@@ -114,7 +114,9 @@ model Post {
   artistId     String
   title        String
   content      String
-  images       String[] // URLs de las imágenes
+  images       String[] // URLs de las imágenes de Supabase Storage
+  videos       String[] // URLs de videos de YouTube
+  mediaType    PostMediaType @default(TEXT_ONLY) // Tipo de contenido
   isExclusive  Boolean  @default(false)
   tierRequired String?  // ID del tier requerido para ver el post
   likes        Int      @default(0)
@@ -153,4 +155,11 @@ enum TransactionStatus {
   COMPLETED
   FAILED
   REFUNDED
+}
+
+enum PostMediaType {
+  TEXT_ONLY
+  IMAGE
+  VIDEO
+  MIXED
 } 

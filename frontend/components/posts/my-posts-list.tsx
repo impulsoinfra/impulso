@@ -13,6 +13,8 @@ interface Post {
   title: string
   content: string
   images: string[]
+  videos: string[]
+  mediaType: 'TEXT_ONLY' | 'IMAGE' | 'VIDEO' | 'MIXED'
   isExclusive: boolean
   tierRequired: string | null
   likes: number
@@ -21,6 +23,21 @@ interface Post {
   _count: {
     comments: number
   }
+}
+
+// Función helper para extraer ID de video de YouTube
+function extractYouTubeVideoId(url: string): string | null {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/v\/([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/watch\?.*v=([a-zA-Z0-9_-]{11})/
+  ]
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern)
+    if (match) return match[1]
+  }
+  return null
 }
 
 export function MyPostsList() {
@@ -159,16 +176,49 @@ export function MyPostsList() {
                   </div>
                 </div>
                 
+                {/* Imágenes */}
                 {post.images.length > 0 && (
-                  <div className="flex gap-2 overflow-x-auto pb-2">
-                    {post.images.map((image, index) => (
-                      <img
-                        key={index}
-                        src={image}
-                        alt={`Imagen ${index + 1}`}
-                        className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
-                      />
-                    ))}
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-gray-600">Imágenes:</p>
+                    <div className="flex gap-2 overflow-x-auto pb-2">
+                      {post.images.map((image, index) => (
+                        <img
+                          key={index}
+                          src={image}
+                          alt={`Imagen ${index + 1}`}
+                          className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Videos */}
+                {post.videos.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-gray-600">Videos:</p>
+                    <div className="space-y-2">
+                      {post.videos.map((video, index) => {
+                        const videoId = extractYouTubeVideoId(video)
+                        return (
+                          <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                            <div className="w-16 h-12 bg-red-100 rounded flex items-center justify-center">
+                              <span className="text-red-600 text-xs">🎥</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm truncate">{video}</p>
+                              {videoId && (
+                                <img
+                                  src={`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`}
+                                  alt="Video thumbnail"
+                                  className="w-12 h-8 object-cover rounded mt-1"
+                                />
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
