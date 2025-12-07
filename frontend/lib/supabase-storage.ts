@@ -1,13 +1,19 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+// Función helper para obtener el cliente de Supabase de forma lazy
+function getSupabaseClient(): SupabaseClient {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY son requeridos')
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error(
+      'NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY son requeridos. ' +
+      'En producción, configura estas variables en Vercel (Settings > Environment Variables).'
+    )
+  }
+
+  return createClient(supabaseUrl, supabaseAnonKey)
 }
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 export interface UploadResult {
   url: string
@@ -21,6 +27,7 @@ export async function uploadImage(
   artistId: string
 ): Promise<UploadResult> {
   try {
+    const supabase = getSupabaseClient()
     const fileName = `${Date.now()}_${file.name}`
     const filePath = `posts/${artistId}/${fileName}`
     
@@ -60,6 +67,7 @@ export async function uploadImage(
 // Función para eliminar imagen de Supabase Storage
 export async function deleteImage(filePath: string): Promise<boolean> {
   try {
+    const supabase = getSupabaseClient()
     const { error } = await supabase.storage
       .from('post-images')
       .remove([filePath])
