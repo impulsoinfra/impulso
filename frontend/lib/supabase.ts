@@ -1,20 +1,81 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+// Variable para almacenar el cliente de Supabase (singleton)
+let supabaseClient: SupabaseClient | null = null
 
-// Solo crear el cliente si las variables de entorno están disponibles
-export const supabase = supabaseUrl && supabaseAnonKey 
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null
+// Función helper para obtener las variables de entorno en tiempo de ejecución
+function getEnvVars() {
+  // Leer las variables de entorno en tiempo de ejecución
+  // Esto es importante porque en Next.js las variables pueden no estar disponibles
+  // durante el build o en ciertos contextos de SSR
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  return { url, key }
+}
+
+// Función helper para validar y crear el cliente de Supabase
+function createSupabaseClient(): SupabaseClient {
+  // Si el cliente ya existe, retornarlo
+  if (supabaseClient) {
+    return supabaseClient
+  }
+
+  // Obtener las variables de entorno en tiempo de ejecución
+  const { url: supabaseUrl, key: supabaseAnonKey } = getEnvVars()
+
+  // Validar que las variables estén disponibles
+  if (!supabaseUrl || !supabaseAnonKey) {
+    const missingVars = []
+    if (!supabaseUrl) missingVars.push('NEXT_PUBLIC_SUPABASE_URL')
+    if (!supabaseAnonKey) missingVars.push('NEXT_PUBLIC_SUPABASE_ANON_KEY')
+    
+    console.error('❌ Missing Supabase environment variables:', missingVars)
+    console.error('Current env values:', {
+      url: supabaseUrl ? '✅ set' : '❌ missing',
+      key: supabaseAnonKey ? '✅ set' : '❌ missing'
+    })
+    
+    // En desarrollo, mostrar más información de ayuda
+    if (process.env.NODE_ENV === 'development') {
+      console.error('\n💡 Troubleshooting tips:')
+      console.error('1. Check that .env.local exists in the frontend directory')
+      console.error('2. Verify the variables start with NEXT_PUBLIC_')
+      console.error('3. Restart your Next.js dev server after adding env variables')
+      console.error('4. Check that the file is not in .gitignore')
+      console.error('5. Make sure you are running the dev server from the frontend directory')
+    }
+    
+    throw new Error(
+      `Supabase client is not available. Missing environment variables: ${missingVars.join(', ')}. ` +
+      `Please check your .env.local file and ensure these variables are set. ` +
+      `Make sure to restart your Next.js dev server after adding environment variables.`
+    )
+  }
+
+  // Crear el cliente y almacenarlo
+  supabaseClient = createClient(supabaseUrl, supabaseAnonKey)
+  return supabaseClient
+}
 
 // Función helper para obtener el cliente de Supabase de manera segura
-function getSupabaseClient() {
-  if (!supabase) {
-    throw new Error('Supabase client is not available. Check your environment variables.')
-  }
-  return supabase
+function getSupabaseClient(): SupabaseClient {
+  return createSupabaseClient()
 }
+
+// Exportar el cliente (lazy initialization)
+// Se crea la primera vez que se accede, leyendo las variables en tiempo de ejecución
+export const supabase: SupabaseClient | null = (() => {
+  try {
+    const { url, key } = getEnvVars()
+    if (url && key) {
+      return createSupabaseClient()
+    }
+    return null
+  } catch (error) {
+    console.error('Error initializing Supabase client:', error)
+    return null
+  }
+})()
 
 // Tipos para el usuario
 export interface UserProfile {
