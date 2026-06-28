@@ -92,15 +92,23 @@ function DashboardContent() {
   const [profileMsg, setProfileMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
   const loadData = useCallback(async () => {
-    if (!user || !supabase) return
+    if (!user || !supabase) {
+      setLoadingData(false)
+      return
+    }
     setLoadingData(true)
-    const [{ data: postsData }, { data: goalData }] = await Promise.all([
-      supabase.from('posts').select('*').eq('creator_id', user.id).order('created_at', { ascending: false }),
-      supabase.from('goals').select('*').eq('creator_id', user.id).eq('is_active', true).limit(1).maybeSingle(),
-    ])
-    setPosts(postsData ?? [])
-    setGoal(goalData ?? null)
-    setLoadingData(false)
+    try {
+      const [{ data: postsData }, { data: goalData }] = await Promise.all([
+        supabase.from('posts').select('*').eq('creator_id', user.id).order('created_at', { ascending: false }),
+        supabase.from('goals').select('*').eq('creator_id', user.id).eq('is_active', true).limit(1).maybeSingle(),
+      ])
+      setPosts(postsData ?? [])
+      setGoal(goalData ?? null)
+    } catch (err) {
+      console.error('[loadData]', err)
+    } finally {
+      setLoadingData(false)
+    }
   }, [user])
 
   useEffect(() => {
@@ -132,24 +140,30 @@ function DashboardContent() {
     if (!user || !supabase || !postContent.trim()) return
     setSavingPost(true)
     setPostMsg(null)
-    const { error } = await supabase.from('posts').insert({
-      creator_id: user.id,
-      title: postTitle.trim() || null,
-      content: postContent.trim(),
-      post_type: postType,
-      media_url: postMediaUrl.trim() || null,
-    })
-    if (error) {
-      setPostMsg({ ok: false, text: 'Error al publicar. Intentá de nuevo.' })
-    } else {
-      setPostMsg({ ok: true, text: '¡Publicación creada!' })
-      setPostTitle('')
-      setPostContent('')
-      setPostMediaUrl('')
-      setPostType('text')
-      await loadData()
+    try {
+      const { error } = await supabase.from('posts').insert({
+        creator_id: user.id,
+        title: postTitle.trim() || null,
+        content: postContent.trim(),
+        post_type: postType,
+        media_url: postMediaUrl.trim() || null,
+      })
+      if (error) {
+        setPostMsg({ ok: false, text: 'Error al publicar. Intentá de nuevo.' })
+      } else {
+        setPostMsg({ ok: true, text: '¡Publicación creada!' })
+        setPostTitle('')
+        setPostContent('')
+        setPostMediaUrl('')
+        setPostType('text')
+        await loadData()
+      }
+    } catch (err) {
+      console.error('[createPost]', err)
+      setPostMsg({ ok: false, text: 'Error inesperado. Intentá de nuevo.' })
+    } finally {
+      setSavingPost(false)
     }
-    setSavingPost(false)
   }
 
   const handleDeletePost = async (id: string) => {
@@ -161,34 +175,39 @@ function DashboardContent() {
   const handleSaveGoal = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user || !supabase || !goalTitle.trim() || !goalTarget) return
-    setSavingGoal(true)
-    setGoalMsg(null)
-    const amount = parseFloat(goalTarget.replace(/[.,]/g, (m) => (m === '.' ? '' : '.')))
+    const amount = parseFloat(goalTarget.replace(/\./g, '').replace(',', '.'))
     if (isNaN(amount) || amount <= 0) {
       setGoalMsg({ ok: false, text: 'El monto debe ser mayor a 0.' })
-      setSavingGoal(false)
       return
     }
-    if (goal) {
-      const { error } = await supabase.from('goals').update({
-        title: goalTitle.trim(),
-        description: goalDesc.trim() || null,
-        target_amount: amount,
-      }).eq('id', goal.id)
-      setGoalMsg(error ? { ok: false, text: 'Error al guardar.' } : { ok: true, text: 'Meta actualizada.' })
-    } else {
-      const { error } = await supabase.from('goals').insert({
-        creator_id: user.id,
-        title: goalTitle.trim(),
-        description: goalDesc.trim() || null,
-        target_amount: amount,
-        current_amount: 0,
-        is_active: true,
-      })
-      setGoalMsg(error ? { ok: false, text: 'Error al crear la meta.' } : { ok: true, text: '¡Meta creada!' })
-      if (!error) await loadData()
+    setSavingGoal(true)
+    setGoalMsg(null)
+    try {
+      if (goal) {
+        const { error } = await supabase.from('goals').update({
+          title: goalTitle.trim(),
+          description: goalDesc.trim() || null,
+          target_amount: amount,
+        }).eq('id', goal.id)
+        setGoalMsg(error ? { ok: false, text: 'Error al guardar.' } : { ok: true, text: 'Meta actualizada.' })
+      } else {
+        const { error } = await supabase.from('goals').insert({
+          creator_id: user.id,
+          title: goalTitle.trim(),
+          description: goalDesc.trim() || null,
+          target_amount: amount,
+          current_amount: 0,
+          is_active: true,
+        })
+        setGoalMsg(error ? { ok: false, text: 'Error al crear la meta.' } : { ok: true, text: '¡Meta creada!' })
+        if (!error) await loadData()
+      }
+    } catch (err) {
+      console.error('[saveGoal]', err)
+      setGoalMsg({ ok: false, text: 'Error inesperado. Intentá de nuevo.' })
+    } finally {
+      setSavingGoal(false)
     }
-    setSavingGoal(false)
   }
 
   const handleDeactivateGoal = async () => {
@@ -206,21 +225,27 @@ function DashboardContent() {
     if (!user || !supabase) return
     setSavingProfile(true)
     setProfileMsg(null)
-    const { error } = await supabase.from('profiles').update({
-      username: profileUsername.trim().toLowerCase() || null,
-      bio: profileBio.trim() || null,
-      creator_type: profileCreatorType || null,
-      website: profileWebsite.trim() || null,
-      updated_at: new Date().toISOString(),
-    }).eq('id', user.id)
-    if (error) {
-      const msg = error.message.includes('unique') ? 'Ese username ya está en uso.' : 'Error al guardar el perfil.'
-      setProfileMsg({ ok: false, text: msg })
-    } else {
-      setProfileMsg({ ok: true, text: 'Perfil actualizado.' })
-      await refreshProfile()
+    try {
+      const { error } = await supabase.from('profiles').update({
+        username: profileUsername.trim().toLowerCase() || null,
+        bio: profileBio.trim() || null,
+        creator_type: profileCreatorType || null,
+        website: profileWebsite.trim() || null,
+        updated_at: new Date().toISOString(),
+      }).eq('id', user.id)
+      if (error) {
+        const msg = error.message.includes('unique') ? 'Ese username ya está en uso.' : 'Error al guardar el perfil.'
+        setProfileMsg({ ok: false, text: msg })
+      } else {
+        setProfileMsg({ ok: true, text: 'Perfil actualizado.' })
+        await refreshProfile()
+      }
+    } catch (err) {
+      console.error('[saveProfile]', err)
+      setProfileMsg({ ok: false, text: 'Error inesperado. Intentá de nuevo.' })
+    } finally {
+      setSavingProfile(false)
     }
-    setSavingProfile(false)
   }
 
   if (!profile) {
