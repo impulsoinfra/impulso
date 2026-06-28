@@ -38,6 +38,8 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const sbRef = useRef<SupabaseClient | null>(null)
 
+  // Single Supabase client, lazily created in the browser only.
+  // Exposed via context so all components share the same instance — no dual token-refresh conflicts.
   const getClient = useCallback((): SupabaseClient | null => {
     if (typeof window === 'undefined') return null
     if (!sbRef.current) {
@@ -60,12 +62,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const client = getClient()
     if (!client) return
     try {
-      const { data, error } = await client
+      const { data } = await client
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single()
-      if (!error && data) setProfile(data as UserProfile)
+      if (data) setProfile(data as UserProfile)
     } catch (err) {
       console.error('[loadUserProfile]', err)
     }
@@ -80,6 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return
     }
 
+    // Load initial session
     client.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
@@ -87,6 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false)
     }).catch(() => setLoading(false))
 
+    // Listen for auth changes (token refresh, sign in/out, etc.)
     const { data: { subscription } } = client.auth.onAuthStateChange(
       async (event, session) => {
         setSession(session)
@@ -94,7 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (session?.user) {
           await loadUserProfile(session.user.id)
         } else if (event === 'SIGNED_OUT') {
-          // Only clear profile on explicit sign-out, not on token refresh
+          // Only clear profile on explicit sign-out, not on TOKEN_REFRESHED
           setProfile(null)
         }
         setLoading(false)
@@ -104,7 +108,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe()
   }, [isClient, getClient, loadUserProfile])
 
-  const handleSignUp = async (email: string, password: string, name: string, role: 'artist' | 'supporter') => {
+  const handleSignUp = useCallback(async (
+    email: string, password: string, name: string, role: 'artist' | 'supporter'
+  ) => {
     const client = getClient()
     if (!client) return { data: null, error: new Error('Client not available') }
     try {
@@ -115,28 +121,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
       if (error) throw error
       return { data, error: null }
-    } catch (error) {
-      return { data: null, error }
+    } catch (err) {
+      return { data: null, error: err }
     }
-  }
+  }, [getClient])
 
-  const handleSignIn = async (email: string, password: string) => {
+  const handleSignIn = useCallback(async (email: string, password: string) => {
     const client = getClient()
     if (!client) return { data: null, error: new Error('Client not available') }
     try {
       const { data, error } = await client.auth.signInWithPassword({ email, password })
       if (error) throw error
-      if (data.user) {
-        setUser(data.user)
-        await loadUserProfile(data.user.id)
-      }
+      // Don't await profile load here — onAuthStateChange handles it.
+      // Awaiting here would block the login page's finally block.
       return { data, error: null }
-    } catch (error) {
-      return { data: null, error }
+    } catch (err) {
+      return { data: null, error: err }
     }
-  }
+  }, [getClient])
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     const client = getClient()
     if (!client) return { error: new Error('Client not available') }
     try {
@@ -146,14 +150,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(null)
       setSession(null)
       return { error: null }
-    } catch (error) {
-      return { error }
+    } catch (err) {
+      return { error: err }
     }
-  }
+  }, [getClient])
 
-  const refreshProfile = async () => {
+  const refreshProfile = useCallback(async () => {
     if (user) await loadUserProfile(user.id)
-  }
+  }, [user, loadUserProfile])
 
   const value: AuthContextType = {
     user: isClient ? user : null,
