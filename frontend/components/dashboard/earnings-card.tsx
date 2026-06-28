@@ -135,8 +135,8 @@ export function EarningsCard() {
       <CardContent className="space-y-6">
         {/* Estadísticas principales */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="text-center p-4 bg-blue-50 rounded-lg">
-            <div className="text-2xl font-bold text-blue-600">
+          <div className="text-center p-4 bg-rose-50 rounded-lg">
+            <div className="text-2xl font-bold text-rose-600">
               {formatCurrency(earnings.total)}
             </div>
             <p className="text-sm text-gray-600">Total {period === 'week' ? 'semanal' : period === 'month' ? 'mensual' : period === 'year' ? 'anual' : 'general'}</p>
@@ -168,8 +168,8 @@ export function EarningsCard() {
               {topSupporters.map((supporter) => (
                 <div key={supporter.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-medium text-blue-600">
+                    <div className="w-8 h-8 bg-rose-100 rounded-full flex items-center justify-center">
+                      <span className="text-sm font-medium text-rose-600">
                         {supporter.name.charAt(0).toUpperCase()}
                       </span>
                     </div>

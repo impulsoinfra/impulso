@@ -1,19 +1,57 @@
 'use client'
 
+import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { useAuth } from '@/hooks/use-auth'
 import { ProtectedRoute } from '@/components/auth/protected-route'
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { User, Palette, Heart, Settings, LogOut, Loader2, Plus, DollarSign } from 'lucide-react'
-import { ROUTES } from '@/lib/constants'
-import { usersApi, UserStats } from '@/lib/api'
-import { useState, useEffect } from 'react'
-import { CreatePostDialog } from '@/components/posts/create-post-dialog'
-import { MyPostsList } from '@/components/posts/my-posts-list'
-import { EarningsCard } from '@/components/dashboard/earnings-card'
+import { Progress } from '@/components/ui/progress'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
+import {
+  FileText, Target, User, Plus, Trash2, ExternalLink,
+  Loader2, LogOut, CheckCircle, AlertCircle, Eye,
+} from 'lucide-react'
+import { supabase } from '@/lib/supabase'
+import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
+
+const CREATOR_TYPES = [
+  'DJs', 'Artistas', 'Músicos', 'Fotógrafos', 'Escritores',
+  'Podcasters', 'Streamers', 'Creadores de video', 'Emprendedores', 'Ilustradores',
+]
+
+interface Post {
+  id: string
+  title: string | null
+  content: string
+  post_type: string
+  media_url: string | null
+  created_at: string
+}
+
+interface Goal {
+  id: string
+  title: string
+  description: string | null
+  target_amount: number
+  current_amount: number
+  is_active: boolean
+}
 
 export default function DashboardPage() {
   return (
@@ -24,323 +62,626 @@ export default function DashboardPage() {
 }
 
 function DashboardContent() {
-  const { user, profile, signOut } = useAuth()
-  const [stats, setStats] = useState<UserStats | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { user, profile, signOut, refreshProfile } = useAuth()
 
-  // Cargar estadísticas del usuario
-  useEffect(() => {
-    const fetchStats = async () => {
-      if (!user) return
-      
-      try {
-        setLoading(true)
-        const response = await usersApi.getUserStats()
-        setStats(response.stats)
-      } catch (err) {
-        setError('Error al cargar estadísticas')
-        console.error('Error fetching stats:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
+  const [posts, setPosts] = useState<Post[]>([])
+  const [goal, setGoal] = useState<Goal | null>(null)
+  const [loadingData, setLoadingData] = useState(true)
 
-    fetchStats()
+  // Post form
+  const [postTitle, setPostTitle] = useState('')
+  const [postContent, setPostContent] = useState('')
+  const [postType, setPostType] = useState('text')
+  const [postMediaUrl, setPostMediaUrl] = useState('')
+  const [savingPost, setSavingPost] = useState(false)
+  const [postMsg, setPostMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  // Goal form
+  const [goalTitle, setGoalTitle] = useState('')
+  const [goalDesc, setGoalDesc] = useState('')
+  const [goalTarget, setGoalTarget] = useState('')
+  const [savingGoal, setSavingGoal] = useState(false)
+  const [goalMsg, setGoalMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  // Profile form
+  const [profileUsername, setProfileUsername] = useState('')
+  const [profileBio, setProfileBio] = useState('')
+  const [profileCreatorType, setProfileCreatorType] = useState('')
+  const [profileWebsite, setProfileWebsite] = useState('')
+  const [savingProfile, setSavingProfile] = useState(false)
+  const [profileMsg, setProfileMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  const loadData = useCallback(async () => {
+    if (!user || !supabase) return
+    setLoadingData(true)
+    const [{ data: postsData }, { data: goalData }] = await Promise.all([
+      supabase.from('posts').select('*').eq('creator_id', user.id).order('created_at', { ascending: false }),
+      supabase.from('goals').select('*').eq('creator_id', user.id).eq('is_active', true).limit(1).maybeSingle(),
+    ])
+    setPosts(postsData ?? [])
+    setGoal(goalData ?? null)
+    setLoadingData(false)
   }, [user])
 
-  const handleLogout = async () => {
-    await signOut()
-    // El ProtectedRoute redirigirá automáticamente al login
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+
+  // Pre-fill profile form when profile loads
+  useEffect(() => {
+    if (profile) {
+      const p = profile as any
+      setProfileUsername(p.username ?? '')
+      setProfileBio(p.bio ?? '')
+      setProfileCreatorType(p.creator_type ?? '')
+      setProfileWebsite(p.website ?? '')
+    }
+  }, [profile])
+
+  // Pre-fill goal form when goal loads
+  useEffect(() => {
+    if (goal) {
+      setGoalTitle(goal.title)
+      setGoalDesc(goal.description ?? '')
+      setGoalTarget(String(goal.target_amount))
+    }
+  }, [goal])
+
+  const handleCreatePost = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user || !supabase || !postContent.trim()) return
+    setSavingPost(true)
+    setPostMsg(null)
+    const { error } = await supabase.from('posts').insert({
+      creator_id: user.id,
+      title: postTitle.trim() || null,
+      content: postContent.trim(),
+      post_type: postType,
+      media_url: postMediaUrl.trim() || null,
+    })
+    if (error) {
+      setPostMsg({ ok: false, text: 'Error al publicar. Intentá de nuevo.' })
+    } else {
+      setPostMsg({ ok: true, text: '¡Publicación creada!' })
+      setPostTitle('')
+      setPostContent('')
+      setPostMediaUrl('')
+      setPostType('text')
+      await loadData()
+    }
+    setSavingPost(false)
   }
 
-  const handlePostCreated = () => {
-    // Recargar estadísticas cuando se crea una nueva publicación
-    if (stats) {
-      setStats({
-        ...stats,
-        totalPosts: stats.totalPosts + 1
-      })
+  const handleDeletePost = async (id: string) => {
+    if (!supabase) return
+    await supabase.from('posts').delete().eq('id', id)
+    setPosts((prev) => prev.filter((p) => p.id !== id))
+  }
+
+  const handleSaveGoal = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user || !supabase || !goalTitle.trim() || !goalTarget) return
+    setSavingGoal(true)
+    setGoalMsg(null)
+    const amount = parseFloat(goalTarget.replace(/[.,]/g, (m) => (m === '.' ? '' : '.')))
+    if (isNaN(amount) || amount <= 0) {
+      setGoalMsg({ ok: false, text: 'El monto debe ser mayor a 0.' })
+      setSavingGoal(false)
+      return
     }
+    if (goal) {
+      const { error } = await supabase.from('goals').update({
+        title: goalTitle.trim(),
+        description: goalDesc.trim() || null,
+        target_amount: amount,
+      }).eq('id', goal.id)
+      setGoalMsg(error ? { ok: false, text: 'Error al guardar.' } : { ok: true, text: 'Meta actualizada.' })
+    } else {
+      const { error } = await supabase.from('goals').insert({
+        creator_id: user.id,
+        title: goalTitle.trim(),
+        description: goalDesc.trim() || null,
+        target_amount: amount,
+        current_amount: 0,
+        is_active: true,
+      })
+      setGoalMsg(error ? { ok: false, text: 'Error al crear la meta.' } : { ok: true, text: '¡Meta creada!' })
+      if (!error) await loadData()
+    }
+    setSavingGoal(false)
+  }
+
+  const handleDeactivateGoal = async () => {
+    if (!goal || !supabase) return
+    await supabase.from('goals').update({ is_active: false }).eq('id', goal.id)
+    setGoal(null)
+    setGoalTitle('')
+    setGoalDesc('')
+    setGoalTarget('')
+    setGoalMsg({ ok: true, text: 'Meta cerrada.' })
+  }
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user || !supabase) return
+    setSavingProfile(true)
+    setProfileMsg(null)
+    const { error } = await supabase.from('profiles').update({
+      username: profileUsername.trim().toLowerCase() || null,
+      bio: profileBio.trim() || null,
+      creator_type: profileCreatorType || null,
+      website: profileWebsite.trim() || null,
+      updated_at: new Date().toISOString(),
+    }).eq('id', user.id)
+    if (error) {
+      const msg = error.message.includes('unique') ? 'Ese username ya está en uso.' : 'Error al guardar el perfil.'
+      setProfileMsg({ ok: false, text: msg })
+    } else {
+      setProfileMsg({ ok: true, text: 'Perfil actualizado.' })
+      await refreshProfile()
+    }
+    setSavingProfile(false)
   }
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        <main className="flex-1 flex items-center justify-center py-12">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Cargando perfil...</p>
-          </div>
-        </main>
-        <Footer />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-rose-600" />
       </div>
     )
   }
 
+  const isCreator = profile.role === 'artist'
+  const goalPercent = goal ? Math.min(Math.round((goal.current_amount / goal.target_amount) * 100), 100) : 0
+  const p = profile as any
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Header />
-      
-      <main className="flex-1 py-8">
-        <div className="container mx-auto px-4">
-          {/* Header del Dashboard */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Bienvenido, {profile.name}!
-            </h1>
-            <p className="text-gray-600">
-              Gestioná tu cuenta y contenido desde tu panel personal
+
+      <main className="container mx-auto px-4 py-8 max-w-5xl">
+        {/* Page header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Mi panel</h1>
+            <p className="text-gray-500 text-sm mt-0.5">
+              {isCreator ? 'Gestioná tu contenido y metas' : 'Tu espacio en Impulso'}
             </p>
           </div>
-
-          {/* Información del Usuario */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Tipo de Cuenta</CardTitle>
-                <Badge variant={profile.role === 'artist' ? 'default' : 'secondary'}>
-                  {profile.role === 'artist' ? 'Artista' : 'Seguidor'}
-                </Badge>
-              </CardHeader>
-              <CardContent>
-                                  <div className="text-2xl font-bold">
-                    {profile.role === 'artist' ? '🎨' : '❤️'}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {profile.role === 'artist' 
-                      ? 'Compartí tu arte y recibí apoyo' 
-                      : 'Apoyá a tus artistas favoritos'
-                    }
-                  </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Email</CardTitle>
-                <User className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{profile.email}</div>
-                <p className="text-xs text-muted-foreground">
-                  Cuenta verificada
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Miembro desde</CardTitle>
-                <Badge variant="outline">
-                  {new Date(profile.created_at).toLocaleDateString('es-AR')}
-                </Badge>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {stats ? stats.daysAsMember : '...'} días
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  En la comunidad
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Acciones Rápidas */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            {profile.role === 'artist' ? (
-              <>
-                <CreatePostDialog onPostCreated={handlePostCreated} />
-                <Button variant="outline" className="h-24 flex-col space-y-2">
-                  <Heart className="h-6 w-6" />
-                  <span>Ver Seguidores</span>
+          <div className="flex items-center gap-3">
+            {isCreator && p.username && (
+              <Link href={`/${p.username}`} target="_blank">
+                <Button variant="outline" size="sm" className="gap-1.5 border-rose-200 text-rose-700 hover:bg-rose-50">
+                  <Eye className="w-3.5 h-3.5" />
+                  Ver perfil
                 </Button>
-                <Button variant="outline" className="h-24 flex-col space-y-2">
-                  <DollarSign className="h-6 w-6" />
-                  <span>Ver Ganancias</span>
-                </Button>
-                <Button variant="outline" className="h-24 flex-col space-y-2">
-                  <Settings className="h-6 w-6" />
-                  <span>Configuración</span>
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="h-24 flex-col space-y-2 text-red-600 hover:text-red-700"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="h-6 w-6" />
-                  <span>Cerrar Sesión</span>
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button variant="outline" className="h-24 flex-col space-y-2">
-                  <Heart className="h-6 w-6" />
-                  <span>Artistas Favoritos</span>
-                </Button>
-                <Button variant="outline" className="h-24 flex-col space-y-2">
-                  <Palette className="h-6 w-6" />
-                  <span>Contenido Exclusivo</span>
-                </Button>
-                <Button variant="outline" className="h-24 flex-col space-y-2">
-                  <Settings className="h-6 w-6" />
-                  <span>Configuración</span>
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="h-24 flex-col space-y-2 text-red-600 hover:text-red-700"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="h-6 w-6" />
-                  <span>Cerrar Sesión</span>
-                </Button>
-              </>
+              </Link>
             )}
-          </div>
-
-          {/* Contenido específico para artistas */}
-          {profile.role === 'artist' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              {/* Ganancias */}
-              <EarningsCard />
-              
-              {/* Estadísticas del usuario */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Actividad Reciente</CardTitle>
-                  <CardDescription>
-                    Tu actividad en la plataforma
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {loading ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Cargando...</span>
-                    </div>
-                  ) : error ? (
-                    <div className="text-red-500 text-sm">
-                      Error al cargar estadísticas
-                    </div>
-                  ) : stats ? (
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Último acceso</span>
-                        <span className="text-sm font-medium">
-                          {new Date(stats.lastLogin).toLocaleDateString('es-AR')}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Estado</span>
-                        <Badge variant="default">{stats.status}</Badge>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Total seguidores</span>
-                        <span className="text-sm font-medium">{stats.totalSupporters}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Ganancias totales</span>
-                        <span className="text-sm font-medium text-green-600">
-                          ${stats.totalEarnings.toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
-                  ) : null}
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {/* Mis Publicaciones (solo para artistas) */}
-          {profile.role === 'artist' && (
-            <div className="mb-8">
-              <MyPostsList />
-            </div>
-          )}
-
-          {/* Estadísticas generales */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Próximos Pasos</CardTitle>
-                <CardDescription>
-                  Recomendaciones para mejorar tu experiencia
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {profile.role === 'artist' ? (
-                    <>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                        <span className="text-sm">Completá tu perfil de artista</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                        <span className="text-sm">Subí tu primer contenido</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                        <span className="text-sm">Conectá con tu comunidad</span>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                        <span className="text-sm">Descubrí artistas</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                        <span className="text-sm">Apoyá a tus favoritos</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                        <span className="text-sm">Accedé a contenido exclusivo</span>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Información de la Cuenta</CardTitle>
-                <CardDescription>
-                  Detalles de tu membresía
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                                      <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Rol</span>
-                      <Badge variant={profile.role === 'artist' ? 'default' : 'secondary'}>
-                        {profile.role === 'artist' ? 'Artista' : 'Seguidor'}
-                      </Badge>
-                    </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Miembro desde</span>
-                    <span className="text-sm font-medium">
-                      {new Date(profile.created_at).toLocaleDateString('es-AR')}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Días en la comunidad</span>
-                    <span className="text-sm font-medium">
-                      {stats ? stats.daysAsMember : '...'} días
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-gray-500 hover:text-red-600"
+              onClick={() => signOut()}
+            >
+              <LogOut className="w-4 h-4 mr-1.5" />
+              Salir
+            </Button>
           </div>
         </div>
+
+        {/* Stats */}
+        {isCreator && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <StatCard label="Publicaciones" value={loadingData ? '—' : String(posts.length)} />
+            <StatCard
+              label="Meta activa"
+              value={goal ? `${goalPercent}%` : '—'}
+              sub={goal ? goal.title : 'Sin meta'}
+            />
+            <StatCard
+              label="Recaudado"
+              value={goal ? `$${Number(goal.current_amount).toLocaleString('es-AR')}` : '$0'}
+            />
+            <StatCard label="Seguidores" value="Próximamente" sub="" />
+          </div>
+        )}
+
+        {isCreator ? (
+          <Tabs defaultValue="posts">
+            <TabsList className="mb-6 bg-rose-50 border border-rose-100">
+              <TabsTrigger value="posts" className="gap-1.5 data-[state=active]:bg-white data-[state=active]:text-rose-700">
+                <FileText className="w-4 h-4" /> Publicaciones
+              </TabsTrigger>
+              <TabsTrigger value="goal" className="gap-1.5 data-[state=active]:bg-white data-[state=active]:text-rose-700">
+                <Target className="w-4 h-4" /> Mi meta
+              </TabsTrigger>
+              <TabsTrigger value="profile" className="gap-1.5 data-[state=active]:bg-white data-[state=active]:text-rose-700">
+                <User className="w-4 h-4" /> Mi perfil
+              </TabsTrigger>
+            </TabsList>
+
+            {/* POSTS TAB */}
+            <TabsContent value="posts">
+              <div className="grid lg:grid-cols-5 gap-6">
+                {/* Create post form */}
+                <div className="lg:col-span-2">
+                  <Card className="border border-rose-100 shadow-sm sticky top-24">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Plus className="w-4 h-4 text-rose-600" />
+                        Nueva publicación
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <form onSubmit={handleCreatePost} className="space-y-4">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="post-type">Tipo</Label>
+                          <Select value={postType} onValueChange={setPostType}>
+                            <SelectTrigger id="post-type" className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="text">Texto</SelectItem>
+                              <SelectItem value="link">Link / Video</SelectItem>
+                              <SelectItem value="image">Imagen</SelectItem>
+                              <SelectItem value="audio">Audio</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="post-title">Título (opcional)</Label>
+                          <Input
+                            id="post-title"
+                            value={postTitle}
+                            onChange={(e) => setPostTitle(e.target.value)}
+                            placeholder="Título de la publicación"
+                            className="h-9"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="post-content">Contenido *</Label>
+                          <Textarea
+                            id="post-content"
+                            value={postContent}
+                            onChange={(e) => setPostContent(e.target.value)}
+                            placeholder="¿Qué querés compartir?"
+                            rows={4}
+                            required
+                          />
+                        </div>
+                        {postType !== 'text' && (
+                          <div className="space-y-1.5">
+                            <Label htmlFor="post-url">URL</Label>
+                            <Input
+                              id="post-url"
+                              value={postMediaUrl}
+                              onChange={(e) => setPostMediaUrl(e.target.value)}
+                              placeholder="https://..."
+                              className="h-9"
+                            />
+                          </div>
+                        )}
+                        {postMsg && (
+                          <Feedback ok={postMsg.ok} text={postMsg.text} />
+                        )}
+                        <Button
+                          type="submit"
+                          className="w-full bg-rose-600 hover:bg-rose-700 text-white"
+                          disabled={savingPost || !postContent.trim()}
+                        >
+                          {savingPost ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                          Publicar
+                        </Button>
+                      </form>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Posts list */}
+                <div className="lg:col-span-3 space-y-3">
+                  {loadingData ? (
+                    <div className="flex justify-center py-12">
+                      <Loader2 className="w-6 h-6 animate-spin text-rose-400" />
+                    </div>
+                  ) : posts.length === 0 ? (
+                    <Card className="border border-dashed border-rose-200 bg-rose-50/50">
+                      <CardContent className="py-12 text-center">
+                        <FileText className="w-10 h-10 text-rose-300 mx-auto mb-3" />
+                        <p className="text-gray-500 font-medium">Sin publicaciones todavía</p>
+                        <p className="text-gray-400 text-sm mt-1">Creá tu primera publicación a la izquierda.</p>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    posts.map((post) => (
+                      <Card key={post.id} className="border border-rose-100 shadow-sm">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              {post.title && (
+                                <p className="font-semibold text-gray-900 mb-1 truncate">{post.title}</p>
+                              )}
+                              <p className="text-gray-600 text-sm line-clamp-2">{post.content}</p>
+                              <div className="flex items-center gap-3 mt-2">
+                                <Badge variant="outline" className="text-xs border-rose-200 text-rose-600 capitalize">
+                                  {post.post_type}
+                                </Badge>
+                                <span className="text-xs text-gray-400">
+                                  {format(new Date(post.created_at), "d MMM yyyy", { locale: es })}
+                                </span>
+                              </div>
+                            </div>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="text-gray-400 hover:text-red-500 shrink-0">
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>¿Eliminar publicación?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Esta acción no se puede deshacer.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    className="bg-red-600 hover:bg-red-700 text-white"
+                                    onClick={() => handleDeletePost(post.id)}
+                                  >
+                                    Eliminar
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* GOAL TAB */}
+            <TabsContent value="goal">
+              <div className="max-w-xl">
+                {goal && (
+                  <Card className="border border-rose-100 shadow-sm mb-6">
+                    <CardContent className="p-5">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <p className="font-bold text-gray-900">🎯 {goal.title}</p>
+                          {goal.description && <p className="text-gray-500 text-sm mt-0.5">{goal.description}</p>}
+                        </div>
+                        <Badge className="bg-green-100 text-green-700 border-0">Activa</Badge>
+                      </div>
+                      <Progress value={goalPercent} className="h-2.5 mb-2" />
+                      <div className="flex justify-between text-sm">
+                        <span className="font-semibold text-rose-600">
+                          ${Number(goal.current_amount).toLocaleString('es-AR')} recaudados
+                        </span>
+                        <span className="text-gray-400">
+                          Meta ${Number(goal.target_amount).toLocaleString('es-AR')}
+                        </span>
+                      </div>
+                      <p className="text-center text-3xl font-bold text-gray-900 mt-4">{goalPercent}%</p>
+                    </CardContent>
+                  </Card>
+                )}
+
+                <Card className="border border-rose-100 shadow-sm">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">
+                      {goal ? 'Editar meta' : 'Crear una meta'}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleSaveGoal} className="space-y-4">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="goal-title">¿Qué querés lograr? *</Label>
+                        <Input
+                          id="goal-title"
+                          value={goalTitle}
+                          onChange={(e) => setGoalTitle(e.target.value)}
+                          placeholder="Ej: Nuevo sintetizador para grabar el EP"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="goal-desc">Descripción (opcional)</Label>
+                        <Textarea
+                          id="goal-desc"
+                          value={goalDesc}
+                          onChange={(e) => setGoalDesc(e.target.value)}
+                          placeholder="Contá más sobre este proyecto..."
+                          rows={3}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="goal-amount">Monto objetivo (ARS) *</Label>
+                        <Input
+                          id="goal-amount"
+                          value={goalTarget}
+                          onChange={(e) => setGoalTarget(e.target.value)}
+                          placeholder="150000"
+                          required
+                        />
+                      </div>
+                      {goalMsg && <Feedback ok={goalMsg.ok} text={goalMsg.text} />}
+                      <div className="flex gap-3">
+                        <Button
+                          type="submit"
+                          className="flex-1 bg-rose-600 hover:bg-rose-700 text-white"
+                          disabled={savingGoal}
+                        >
+                          {savingGoal && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                          {goal ? 'Guardar cambios' : 'Crear meta'}
+                        </Button>
+                        {goal && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button type="button" variant="outline" className="border-red-200 text-red-500 hover:bg-red-50">
+                                Cerrar meta
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>¿Cerrar esta meta?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  La meta se desactivará y dejará de mostrarse en tu perfil.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="bg-red-600 hover:bg-red-700 text-white"
+                                  onClick={handleDeactivateGoal}
+                                >
+                                  Cerrar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </div>
+                    </form>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            {/* PROFILE TAB */}
+            <TabsContent value="profile">
+              <div className="max-w-xl">
+                <Card className="border border-rose-100 shadow-sm">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Información del perfil</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleSaveProfile} className="space-y-4">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="prof-username">Username *</Label>
+                        <div className="flex items-center border rounded-md overflow-hidden focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                          <span className="px-3 text-gray-400 text-sm bg-gray-50 border-r h-9 flex items-center">
+                            impulso.app/
+                          </span>
+                          <input
+                            id="prof-username"
+                            value={profileUsername}
+                            onChange={(e) => setProfileUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                            placeholder="tuusuario"
+                            className="flex-1 px-3 h-9 text-sm outline-none bg-white"
+                            required
+                          />
+                        </div>
+                        <p className="text-xs text-gray-400">Solo letras, números y guiones bajos.</p>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="prof-bio">Bio</Label>
+                        <Textarea
+                          id="prof-bio"
+                          value={profileBio}
+                          onChange={(e) => setProfileBio(e.target.value)}
+                          placeholder="Contá quién sos en pocas palabras..."
+                          rows={3}
+                          maxLength={500}
+                        />
+                        <p className="text-xs text-gray-400 text-right">{profileBio.length}/500</p>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="prof-type">Tipo de creador</Label>
+                        <Select value={profileCreatorType} onValueChange={setProfileCreatorType}>
+                          <SelectTrigger id="prof-type">
+                            <SelectValue placeholder="Elegí tu categoría" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CREATOR_TYPES.map((t) => (
+                              <SelectItem key={t} value={t}>{t}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="prof-website">Sitio web o red social</Label>
+                        <Input
+                          id="prof-website"
+                          value={profileWebsite}
+                          onChange={(e) => setProfileWebsite(e.target.value)}
+                          placeholder="https://..."
+                        />
+                      </div>
+                      {profileMsg && <Feedback ok={profileMsg.ok} text={profileMsg.text} />}
+                      <Button
+                        type="submit"
+                        className="w-full bg-rose-600 hover:bg-rose-700 text-white"
+                        disabled={savingProfile}
+                      >
+                        {savingProfile && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                        Guardar perfil
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+
+                {profileUsername && (
+                  <div className="mt-4 p-4 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Tu perfil público</p>
+                      <p className="text-xs text-rose-600 font-mono mt-0.5">impulso.app/{profileUsername}</p>
+                    </div>
+                    <Link href={`/${profileUsername}`} target="_blank">
+                      <Button size="sm" variant="outline" className="border-rose-300 text-rose-700 hover:bg-white gap-1">
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        Ver
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
+        ) : (
+          /* SUPPORTER VIEW */
+          <Card className="border border-rose-100 shadow-sm max-w-md">
+            <CardContent className="p-6 text-center">
+              <p className="text-4xl mb-3">❤️</p>
+              <h2 className="font-bold text-gray-900 mb-2">Bienvenido, {profile.name}!</h2>
+              <p className="text-gray-500 text-sm mb-5">
+                Tu cuenta de seguidor está lista. Explorá creadores y apoyá su trabajo.
+              </p>
+              <Link href="/discover">
+                <Button className="bg-rose-600 hover:bg-rose-700 text-white w-full">
+                  Explorar creadores
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        )}
       </main>
-      
+
       <Footer />
+    </div>
+  )
+}
+
+function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <Card className="border border-rose-100 shadow-sm">
+      <CardContent className="p-4">
+        <p className="text-xs text-gray-500 mb-1">{label}</p>
+        <p className="text-2xl font-bold text-gray-900">{value}</p>
+        {sub !== undefined && <p className="text-xs text-gray-400 mt-0.5 truncate">{sub}</p>}
+      </CardContent>
+    </Card>
+  )
+}
+
+function Feedback({ ok, text }: { ok: boolean; text: string }) {
+  return (
+    <div className={`flex items-center gap-2 text-sm p-3 rounded-lg ${ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+      {ok ? <CheckCircle className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+      {text}
     </div>
   )
 }

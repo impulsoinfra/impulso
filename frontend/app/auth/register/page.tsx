@@ -88,7 +88,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Header />
       
       <main className="flex-1 flex items-center justify-center py-12 px-4">
@@ -96,19 +96,19 @@ export default function RegisterPage() {
           <Card className="shadow-lg">
             <CardHeader className="space-y-1">
               <div className="flex items-center space-x-2 mb-4">
-                <Link href={ROUTES.HOME} className="text-gray-600 hover:text-blue-900">
+                <Link href={ROUTES.HOME} className="text-gray-600 hover:text-rose-900">
                   <ArrowLeft className="h-5 w-5" />
                 </Link>
                 <div className="flex items-center space-x-2">
-                  <div className="w-6 h-6 bg-blue-900 rounded-full flex items-center justify-center">
+                  <div className="w-6 h-6 bg-rose-900 rounded-full flex items-center justify-center">
                     <span className="text-white font-bold text-xs">I</span>
                   </div>
-                  <span className="text-lg font-bold text-blue-900">{APP_NAME}</span>
+                  <span className="text-lg font-bold text-rose-900">{APP_NAME}</span>
                 </div>
               </div>
               <CardTitle className="text-2xl font-bold text-center">Crea tu cuenta</CardTitle>
               <CardDescription className="text-center">
-                Unite a la comunidad de emprendedores e inversores para impulsar proyectos reales.
+                Unite a la comunidad de creadores y seguidores que hacen posible el arte independiente.
               </CardDescription>
             </CardHeader>
             
@@ -226,9 +226,9 @@ export default function RegisterPage() {
                         className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
                       >
                         <div className="text-center">
-                          <div className="text-lg font-semibold">Inversor</div>
+                          <div className="text-lg font-semibold">Seguidor</div>
                           <div className="text-sm text-muted-foreground">
-                            Descubrí emprendimientos y apoyalos con capital.
+                            Descubrí creadores y apoyá su trabajo.
                           </div>
                         </div>
                       </Label>
@@ -240,9 +240,9 @@ export default function RegisterPage() {
                         className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
                       >
                         <div className="text-center">
-                          <div className="text-lg font-semibold">Emprendedor</div>
+                          <div className="text-lg font-semibold">Creador</div>
                           <div className="text-sm text-muted-foreground">
-                            Presentá tu proyecto y conseguí financiamiento.
+                            Compartí tu trabajo y recibí el apoyo de tu comunidad.
                           </div>
                         </div>
                       </Label>
@@ -252,7 +252,7 @@ export default function RegisterPage() {
                 
                 <Button
                   type="submit"
-                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  className="w-full bg-rose-600 hover:bg-rose-700"
                   disabled={isLoading}
                 >
                   {isLoading ? 'Creando cuenta...' : 'Comenzar'}
@@ -264,7 +264,7 @@ export default function RegisterPage() {
                   ¿Ya tenés una cuenta?{' '}
                   <Link
                     href={ROUTES.LOGIN}
-                    className="text-blue-600 hover:text-blue-800 font-medium"
+                    className="text-rose-600 hover:text-rose-800 font-medium"
                   >
                     Iniciá sesión acá
                   </Link>

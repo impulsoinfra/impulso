@@ -162,7 +162,7 @@ export default function ArtistProfilePage({ params }: { params: { id: string } }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Header />
       
       <main className="py-8">
@@ -184,7 +184,7 @@ export default function ArtistProfilePage({ params }: { params: { id: string } }
                 <div className="flex items-center gap-3 mb-2">
                   <h1 className="text-3xl font-bold text-gray-900">{mockArtist.name}</h1>
                   {mockArtist.isVerified && (
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                    <Badge variant="secondary" className="bg-rose-100 text-rose-800">
                       <Star className="w-3 h-3 mr-1" />
                       Verificado
                     </Badge>
@@ -254,7 +254,7 @@ export default function ArtistProfilePage({ params }: { params: { id: string } }
                       href={mockArtist.socialLinks.twitter}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-gray-600 hover:text-blue-600 transition-colors"
+                      className="text-gray-600 hover:text-rose-600 transition-colors"
                     >
                       <Twitter className="w-5 h-5" />
                     </a>
@@ -278,7 +278,7 @@ export default function ArtistProfilePage({ params }: { params: { id: string } }
                   onClick={handleFollow}
                   variant={isFollowing ? "outline" : "default"}
                   size="sm"
-                  className={isFollowing ? "border-red-500 text-red-600 hover:bg-red-50" : "bg-blue-600 hover:bg-blue-700 text-white"}
+                  className={isFollowing ? "border-red-500 text-red-600 hover:bg-red-50" : "bg-rose-600 hover:bg-rose-700 text-white"}
                 >
                   {isFollowing ? (
                     <>
@@ -347,7 +347,7 @@ export default function ArtistProfilePage({ params }: { params: { id: string } }
                   <Card 
                     key={option.id} 
                     className={`cursor-pointer transition-all ${
-                      selectedOption === option.id ? 'ring-2 ring-blue-500' : ''
+                      selectedOption === option.id ? 'ring-2 ring-rose-500' : ''
                     }`}
                     onClick={() => setSelectedOption(option.id)}
                   >
@@ -366,7 +366,7 @@ export default function ArtistProfilePage({ params }: { params: { id: string } }
                           <p className="text-sm text-gray-600">Elegí tu monto</p>
                         </div>
                       ) : (
-                        <div className="text-3xl font-bold text-blue-600">
+                        <div className="text-3xl font-bold text-rose-600">
                           {formatCurrency(option.amount)}
                         </div>
                       )}
@@ -376,7 +376,7 @@ export default function ArtistProfilePage({ params }: { params: { id: string } }
                       <ul className="space-y-2 mb-4">
                         {option.benefits.map((benefit, index) => (
                           <li key={index} className="flex items-center gap-2 text-sm">
-                            <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                            <div className="w-2 h-2 bg-rose-500 rounded-full" />
                             {benefit}
                           </li>
                         ))}
@@ -396,7 +396,7 @@ export default function ArtistProfilePage({ params }: { params: { id: string } }
                   <Button 
                     onClick={handleSupport}
                     disabled={isSupporting}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg"
+                    className="bg-rose-600 hover:bg-rose-700 text-white px-8 py-3 text-lg"
                   >
                     {isSupporting ? 'Procesando...' : 'Apoyar ahora'}
                   </Button>

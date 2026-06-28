@@ -61,10 +61,10 @@ export function Header({ user, onLogout }: HeaderProps) {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link href={ROUTES.HOME} className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-blue-900 rounded-full flex items-center justify-center">
+            <div className="w-8 h-8 bg-rose-900 rounded-full flex items-center justify-center">
               <span className="text-white font-bold text-sm">I</span>
             </div>
-            <span className="text-xl font-bold text-blue-900">{APP_NAME}</span>
+            <span className="text-xl font-bold text-rose-900">{APP_NAME}</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -74,8 +74,8 @@ export function Header({ user, onLogout }: HeaderProps) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'text-gray-600 hover:text-blue-900 transition-colors',
-                  isActive(item.href) && 'text-blue-900 font-medium'
+                  'text-gray-600 hover:text-rose-900 transition-colors',
+                  isActive(item.href) && 'text-rose-900 font-medium'
                 )}
               >
                 {item.label}
@@ -88,7 +88,7 @@ export function Header({ user, onLogout }: HeaderProps) {
             {currentUser ? (
               <div className="flex items-center space-x-4">
                 <Link href={ROUTES.DASHBOARD}>
-                  <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                  <Button className="bg-rose-600 hover:bg-rose-700 text-white">
                     Mi perfil
                   </Button>
                 </Link>
@@ -105,12 +105,12 @@ export function Header({ user, onLogout }: HeaderProps) {
             ) : (
               <>
                 <Link href={ROUTES.LOGIN}>
-                  <Button variant="outline" className="border-blue-900 text-blue-900 hover:bg-blue-900 hover:text-white">
+                  <Button variant="outline" className="border-rose-900 text-rose-900 hover:bg-rose-900 hover:text-white">
                     Iniciar sesión
                   </Button>
                 </Link>
                 <Link href={ROUTES.REGISTER}>
-                  <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                  <Button className="bg-rose-600 hover:bg-rose-700 text-white">
                     Registrarse
                   </Button>
                 </Link>
@@ -138,8 +138,8 @@ export function Header({ user, onLogout }: HeaderProps) {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    'text-gray-600 hover:text-blue-900 transition-colors py-2',
-                    isActive(item.href) && 'text-blue-900 font-medium'
+                    'text-gray-600 hover:text-rose-900 transition-colors py-2',
+                    isActive(item.href) && 'text-rose-900 font-medium'
                   )}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
@@ -168,7 +168,7 @@ export function Header({ user, onLogout }: HeaderProps) {
                     </Button>
                   </Link>
                   <Link href={ROUTES.REGISTER}>
-                    <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                    <Button className="w-full bg-rose-600 hover:bg-rose-700 text-white">
                       Registrarse
                     </Button>
                   </Link>

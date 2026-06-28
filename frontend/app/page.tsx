@@ -7,19 +7,7 @@ import { Footer } from "@/components/layout/footer"
 import { ROUTES } from "@/lib/constants"
 import { Progress } from "@/components/ui/progress"
 import { Heart } from "lucide-react"
-
-const CREATOR_TYPES = [
-  { icon: "🎧", label: "DJs" },
-  { icon: "🎨", label: "Artistas" },
-  { icon: "🎵", label: "Músicos" },
-  { icon: "📸", label: "Fotógrafos" },
-  { icon: "✍️", label: "Escritores" },
-  { icon: "🎙️", label: "Podcasters" },
-  { icon: "🎮", label: "Streamers" },
-  { icon: "🎬", label: "Creadores de video" },
-  { icon: "💡", label: "Emprendedores" },
-  { icon: "🖌️", label: "Ilustradores" },
-]
+import { CreatorChips } from "@/components/landing/creator-chips"
 
 const FEATURED_CREATORS = [
   {
@@ -56,7 +44,7 @@ const FEATURED_CREATORS = [
 
 export default function ImpulsoLanding() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       <Header />
 
       {/* Hero */}
@@ -72,7 +60,7 @@ export default function ImpulsoLanding() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link href={ROUTES.REGISTER}>
-                  <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg w-full">
+                  <Button size="lg" className="bg-rose-600 hover:bg-rose-700 text-white px-8 py-3 text-lg w-full">
                     Crear mi perfil gratis
                   </Button>
                 </Link>
@@ -80,7 +68,7 @@ export default function ImpulsoLanding() {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white px-8 py-3 text-lg w-full"
+                    className="border-rose-600 text-rose-600 hover:bg-rose-600 hover:text-white px-8 py-3 text-lg w-full"
                   >
                     Explorar creadores
                   </Button>
@@ -106,22 +94,13 @@ export default function ImpulsoLanding() {
       </section>
 
       {/* Creator types */}
-      <section className="py-14 bg-gray-50">
+      <section className="py-16 bg-rose-50">
         <div className="container mx-auto px-4">
-          <h2 className="text-2xl md:text-3xl font-bold text-center text-gray-900 mb-3">
-            Creadores de todo tipo
+          <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-3">
+            ¡Creadores de todo tipo!
           </h2>
-          <p className="text-center text-gray-500 mb-10">Desde DJs hasta escritores, desde fotógrafos hasta emprendedores.</p>
-          <div className="flex flex-wrap justify-center gap-3 max-w-3xl mx-auto">
-            {CREATOR_TYPES.map((type) => (
-              <span
-                key={type.label}
-                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-medium text-gray-700 shadow-sm"
-              >
-                {type.icon} {type.label}
-              </span>
-            ))}
-          </div>
+          <p className="text-center text-gray-500 mb-12 text-lg">Desde DJs hasta escritores, desde fotógrafos hasta emprendedores.</p>
+          <CreatorChips />
         </div>
       </section>
 
@@ -132,7 +111,7 @@ export default function ImpulsoLanding() {
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             <Card className="border-0 shadow-md bg-white rounded-xl">
               <CardContent className="p-6 text-left">
-                <div className="text-5xl font-bold text-blue-600 mb-4">1</div>
+                <div className="text-5xl font-bold text-rose-600 mb-4">1</div>
                 <h3 className="text-xl font-bold text-gray-900 mb-3">Creá tu perfil</h3>
                 <p className="text-gray-600">
                   Elegí tu username, contá quién sos, subí tu foto y publicá tu primera meta de financiamiento.
@@ -141,7 +120,7 @@ export default function ImpulsoLanding() {
             </Card>
             <Card className="border-0 shadow-md bg-white rounded-xl">
               <CardContent className="p-6 text-left">
-                <div className="text-5xl font-bold text-blue-600 mb-4">2</div>
+                <div className="text-5xl font-bold text-rose-600 mb-4">2</div>
                 <h3 className="text-xl font-bold text-gray-900 mb-3">Compartí tu trabajo</h3>
                 <p className="text-gray-600">
                   Publicá fotos, audio, texto o links a YouTube y Spotify. Tu comunidad ve todo en un solo lugar.
@@ -150,7 +129,7 @@ export default function ImpulsoLanding() {
             </Card>
             <Card className="border-0 shadow-md bg-white rounded-xl">
               <CardContent className="p-6 text-left">
-                <div className="text-5xl font-bold text-blue-600 mb-4">3</div>
+                <div className="text-5xl font-bold text-rose-600 mb-4">3</div>
                 <h3 className="text-xl font-bold text-gray-900 mb-3">Recibí apoyo en pesos</h3>
                 <p className="text-gray-600">
                   Tus fans te apoyan con el monto que quieran vía MercadoPago. Vos recibís el 90% directo en tu cuenta.
@@ -162,13 +141,13 @@ export default function ImpulsoLanding() {
       </section>
 
       {/* Featured creators */}
-      <section id="creadores" className="py-16 bg-gray-50">
+      <section id="creadores" className="py-16 bg-rose-50">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
               Creadores destacados
             </h2>
-            <Link href={ROUTES.DISCOVER} className="text-blue-600 hover:text-blue-700 font-medium text-sm">
+            <Link href={ROUTES.DISCOVER} className="text-rose-600 hover:text-rose-700 font-medium text-sm">
               Ver todos
             </Link>
           </div>
@@ -187,7 +166,7 @@ export default function ImpulsoLanding() {
                     </div>
                   </div>
 
-                  <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                  <div className="bg-rose-50 rounded-lg p-4 mb-4">
                     <p className="text-sm font-medium text-gray-700 mb-3">🎯 {creator.goal}</p>
                     <Progress
                       value={Math.round((creator.current / creator.target) * 100)}
@@ -204,7 +183,7 @@ export default function ImpulsoLanding() {
                       <Heart className="w-4 h-4 text-red-400" />
                       {creator.supporters} personas apoyaron
                     </div>
-                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white text-xs">
+                    <Button size="sm" className="bg-rose-600 hover:bg-rose-700 text-white text-xs">
                       Apoyar
                     </Button>
                   </div>
@@ -226,7 +205,7 @@ export default function ImpulsoLanding() {
               Unite a los creadores argentinos que ya están usando Impulso para financiar sus proyectos.
             </p>
             <Link href={ROUTES.REGISTER}>
-              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-10 py-3 text-lg">
+              <Button size="lg" className="bg-rose-600 hover:bg-rose-700 text-white px-10 py-3 text-lg">
                 Crear mi perfil gratis
               </Button>
             </Link>

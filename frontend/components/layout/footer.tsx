@@ -8,7 +8,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           <div>
             <div className="flex items-center space-x-2 mb-4">
-              <div className="w-8 h-8 bg-blue-900 rounded-full flex items-center justify-center">
+              <div className="w-8 h-8 bg-rose-900 rounded-full flex items-center justify-center">
                 <span className="text-white font-bold text-sm">I</span>
               </div>
               <span className="text-lg font-bold text-gray-900">{APP_NAME}</span>

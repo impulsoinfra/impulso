@@ -84,7 +84,7 @@ export default function DiscoverPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Header />
       
       <main className="py-8">
@@ -179,7 +179,7 @@ export default function DiscoverPage() {
               {artists.map((artist) => (
                 <Card key={artist.id} className="overflow-hidden hover:shadow-lg transition-shadow">
                   <div className="relative">
-                    <div className="aspect-video bg-gradient-to-br from-blue-100 to-purple-100">
+                    <div className="aspect-video bg-gradient-to-br from-rose-100 to-purple-100">
                       {/* Placeholder para imagen de proyecto */}
                       <div className="w-full h-full flex items-center justify-center">
                         <Avatar className="w-16 h-16">
@@ -189,7 +189,7 @@ export default function DiscoverPage() {
                       </div>
                     </div>
                     {artist.isVerified && (
-                      <Badge className="absolute top-2 right-2 bg-blue-100 text-blue-800">
+                      <Badge className="absolute top-2 right-2 bg-rose-100 text-rose-800">
                         <Star className="w-3 h-3 mr-1" />
                         Verificado
                       </Badge>
@@ -227,7 +227,7 @@ export default function DiscoverPage() {
                     </div>
                     
                     <Link href={`/artist/${artist.id}`}>
-                      <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                      <Button className="w-full bg-rose-600 hover:bg-rose-700">
                         Ver proyecto
                       </Button>
                     </Link>

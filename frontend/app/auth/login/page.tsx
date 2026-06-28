@@ -54,7 +54,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Header />
       
       <main className="flex-1 flex items-center justify-center py-12 px-4">
@@ -62,14 +62,14 @@ export default function LoginPage() {
           <Card className="shadow-lg">
             <CardHeader className="space-y-1">
               <div className="flex items-center space-x-2 mb-4">
-                <Link href={ROUTES.HOME} className="text-gray-600 hover:text-blue-900">
+                <Link href={ROUTES.HOME} className="text-gray-600 hover:text-rose-900">
                   <ArrowLeft className="h-5 w-5" />
                 </Link>
                 <div className="flex items-center space-x-2">
-                  <div className="w-6 h-6 bg-blue-900 rounded-full flex items-center justify-center">
+                  <div className="w-6 h-6 bg-rose-900 rounded-full flex items-center justify-center">
                     <span className="text-white font-bold text-xs">I</span>
                   </div>
-                  <span className="text-lg font-bold text-blue-900">{APP_NAME}</span>
+                  <span className="text-lg font-bold text-rose-900">{APP_NAME}</span>
                 </div>
               </div>
               <CardTitle className="text-2xl font-bold text-center">Iniciar sesión</CardTitle>
@@ -128,7 +128,7 @@ export default function LoginPage() {
                 <div className="flex items-center justify-between">
                   <Link
                     href="/auth/forgot-password"
-                    className="text-sm text-blue-600 hover:text-blue-800"
+                    className="text-sm text-rose-600 hover:text-rose-800"
                   >
                     ¿Olvidaste tu contraseña?
                   </Link>
@@ -136,7 +136,7 @@ export default function LoginPage() {
                 
                 <Button
                   type="submit"
-                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  className="w-full bg-rose-600 hover:bg-rose-700"
                   disabled={isLoading}
                 >
                   {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
@@ -148,7 +148,7 @@ export default function LoginPage() {
                   ¿No tenés una cuenta?{' '}
                   <Link
                     href={ROUTES.REGISTER}
-                    className="text-blue-600 hover:text-blue-800 font-medium"
+                    className="text-rose-600 hover:text-rose-800 font-medium"
                   >
                     Registrate acá
                   </Link>
