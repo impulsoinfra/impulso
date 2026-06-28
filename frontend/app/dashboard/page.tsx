@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/hooks/use-auth'
 import { ProtectedRoute } from '@/components/auth/protected-route'
@@ -26,7 +26,6 @@ import {
   FileText, Target, User, Plus, Trash2, ExternalLink,
   Loader2, LogOut, CheckCircle, AlertCircle, Eye,
 } from 'lucide-react'
-import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
@@ -62,19 +61,7 @@ export default function DashboardPage() {
 }
 
 function DashboardContent() {
-  const { user, profile, signOut, refreshProfile } = useAuth()
-
-  // Create Supabase client lazily on the browser — avoids SSR null singleton issue
-  const sbRef = useRef<SupabaseClient | null>(null)
-  const db = useCallback((): SupabaseClient | null => {
-    if (typeof window === 'undefined') return null
-    if (!sbRef.current) {
-      const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-      const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-      if (url && key) sbRef.current = createClient(url, key)
-    }
-    return sbRef.current
-  }, [])
+  const { user, profile, signOut, refreshProfile, getClient } = useAuth()
 
   const [posts, setPosts] = useState<Post[]>([])
   const [goal, setGoal] = useState<Goal | null>(null)
@@ -104,7 +91,8 @@ function DashboardContent() {
   const [profileMsg, setProfileMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
   const loadData = useCallback(async () => {
-    const client = db(); if (!user || !client) {
+    const client = getClient()
+    if (!user || !client) {
       setLoadingData(false)
       return
     }
@@ -121,7 +109,7 @@ function DashboardContent() {
     } finally {
       setLoadingData(false)
     }
-  }, [user])
+  }, [user?.id, getClient])
 
   useEffect(() => {
     loadData()
@@ -149,7 +137,7 @@ function DashboardContent() {
 
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault()
-    const client = db()
+    const client = getClient()
     if (!user || !client || !postContent.trim()) return
     setSavingPost(true)
     setPostMsg(null)
@@ -180,7 +168,7 @@ function DashboardContent() {
   }
 
   const handleDeletePost = async (id: string) => {
-    const client = db()
+    const client = getClient()
     if (!client) return
     await client.from('posts').delete().eq('id', id)
     setPosts((prev) => prev.filter((p) => p.id !== id))
@@ -188,7 +176,7 @@ function DashboardContent() {
 
   const handleSaveGoal = async (e: React.FormEvent) => {
     e.preventDefault()
-    const client = db()
+    const client = getClient()
     if (!user || !client || !goalTitle.trim() || !goalTarget) return
     const amount = parseFloat(goalTarget.replace(/\./g, '').replace(',', '.'))
     if (isNaN(amount) || amount <= 0) {
@@ -226,7 +214,7 @@ function DashboardContent() {
   }
 
   const handleDeactivateGoal = async () => {
-    const client = db()
+    const client = getClient()
     if (!goal || !client) return
     await client.from('goals').update({ is_active: false }).eq('id', goal.id)
     setGoal(null)
@@ -238,7 +226,7 @@ function DashboardContent() {
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault()
-    const client = db()
+    const client = getClient()
     if (!user || !client) return
     setSavingProfile(true)
     setProfileMsg(null)
