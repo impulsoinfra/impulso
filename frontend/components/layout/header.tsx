@@ -52,7 +52,7 @@ export function Header({ user, onLogout }: HeaderProps) {
   const navigationItems = [
     { href: ROUTES.DISCOVER, label: 'Explorar' },
     { href: '/#como-funciona', label: 'Cómo funciona' },
-    { href: '/#proyectos', label: 'Proyectos' },
+    { href: '/#creadores', label: 'Creadores' },
   ]
 
   return (
@@ -89,7 +89,7 @@ export function Header({ user, onLogout }: HeaderProps) {
               <div className="flex items-center space-x-4">
                 <Link href={ROUTES.DASHBOARD}>
                   <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                    Crear proyecto
+                    Mi perfil
                   </Button>
                 </Link>
                 <Link href={ROUTES.DASHBOARD}>
