@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/hooks/use-auth'
 import { ProtectedRoute } from '@/components/auth/protected-route'
@@ -26,7 +26,7 @@ import {
   FileText, Target, User, Plus, Trash2, ExternalLink,
   Loader2, LogOut, CheckCircle, AlertCircle, Eye,
 } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
@@ -64,6 +64,18 @@ export default function DashboardPage() {
 function DashboardContent() {
   const { user, profile, signOut, refreshProfile } = useAuth()
 
+  // Create Supabase client lazily on the browser — avoids SSR null singleton issue
+  const sbRef = useRef<SupabaseClient | null>(null)
+  const db = useCallback((): SupabaseClient | null => {
+    if (typeof window === 'undefined') return null
+    if (!sbRef.current) {
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      if (url && key) sbRef.current = createClient(url, key)
+    }
+    return sbRef.current
+  }, [])
+
   const [posts, setPosts] = useState<Post[]>([])
   const [goal, setGoal] = useState<Goal | null>(null)
   const [loadingData, setLoadingData] = useState(true)
@@ -92,15 +104,15 @@ function DashboardContent() {
   const [profileMsg, setProfileMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
   const loadData = useCallback(async () => {
-    if (!user || !supabase) {
+    const client = db(); if (!user || !client) {
       setLoadingData(false)
       return
     }
     setLoadingData(true)
     try {
       const [{ data: postsData }, { data: goalData }] = await Promise.all([
-        supabase.from('posts').select('*').eq('creator_id', user.id).order('created_at', { ascending: false }),
-        supabase.from('goals').select('*').eq('creator_id', user.id).eq('is_active', true).limit(1).maybeSingle(),
+        client.from('posts').select('*').eq('creator_id', user.id).order('created_at', { ascending: false }),
+        client.from('goals').select('*').eq('creator_id', user.id).eq('is_active', true).limit(1).maybeSingle(),
       ])
       setPosts(postsData ?? [])
       setGoal(goalData ?? null)
@@ -137,11 +149,12 @@ function DashboardContent() {
 
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user || !supabase || !postContent.trim()) return
+    const client = db()
+    if (!user || !client || !postContent.trim()) return
     setSavingPost(true)
     setPostMsg(null)
     try {
-      const { error } = await supabase.from('posts').insert({
+      const { error } = await client.from('posts').insert({
         creator_id: user.id,
         title: postTitle.trim() || null,
         content: postContent.trim(),
@@ -167,14 +180,16 @@ function DashboardContent() {
   }
 
   const handleDeletePost = async (id: string) => {
-    if (!supabase) return
-    await supabase.from('posts').delete().eq('id', id)
+    const client = db()
+    if (!client) return
+    await client.from('posts').delete().eq('id', id)
     setPosts((prev) => prev.filter((p) => p.id !== id))
   }
 
   const handleSaveGoal = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user || !supabase || !goalTitle.trim() || !goalTarget) return
+    const client = db()
+    if (!user || !client || !goalTitle.trim() || !goalTarget) return
     const amount = parseFloat(goalTarget.replace(/\./g, '').replace(',', '.'))
     if (isNaN(amount) || amount <= 0) {
       setGoalMsg({ ok: false, text: 'El monto debe ser mayor a 0.' })
@@ -184,14 +199,14 @@ function DashboardContent() {
     setGoalMsg(null)
     try {
       if (goal) {
-        const { error } = await supabase.from('goals').update({
+        const { error } = await client.from('goals').update({
           title: goalTitle.trim(),
           description: goalDesc.trim() || null,
           target_amount: amount,
         }).eq('id', goal.id)
         setGoalMsg(error ? { ok: false, text: 'Error al guardar.' } : { ok: true, text: 'Meta actualizada.' })
       } else {
-        const { error } = await supabase.from('goals').insert({
+        const { error } = await client.from('goals').insert({
           creator_id: user.id,
           title: goalTitle.trim(),
           description: goalDesc.trim() || null,
@@ -211,8 +226,9 @@ function DashboardContent() {
   }
 
   const handleDeactivateGoal = async () => {
-    if (!goal || !supabase) return
-    await supabase.from('goals').update({ is_active: false }).eq('id', goal.id)
+    const client = db()
+    if (!goal || !client) return
+    await client.from('goals').update({ is_active: false }).eq('id', goal.id)
     setGoal(null)
     setGoalTitle('')
     setGoalDesc('')
@@ -222,11 +238,12 @@ function DashboardContent() {
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user || !supabase) return
+    const client = db()
+    if (!user || !client) return
     setSavingProfile(true)
     setProfileMsg(null)
     try {
-      const { error } = await supabase.from('profiles').update({
+      const { error } = await client.from('profiles').update({
         username: profileUsername.trim().toLowerCase() || null,
         bio: profileBio.trim() || null,
         creator_type: profileCreatorType || null,
