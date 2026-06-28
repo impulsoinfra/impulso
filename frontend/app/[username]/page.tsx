@@ -12,6 +12,13 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import type { Metadata } from 'next'
 
+function getYouTubeId(url: string): string | null {
+  const match = url.match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
+  )
+  return match ? match[1] : null
+}
+
 interface Props {
   params: Promise<{ username: string }>
 }
@@ -158,17 +165,30 @@ export default async function CreatorProfilePage({ params }: Props) {
                         <h3 className="font-bold text-gray-900 mb-2 text-lg">{post.title}</h3>
                       )}
                       <p className="text-gray-700 leading-relaxed line-clamp-4">{post.content}</p>
-                      {post.media_url && (
-                        <a
-                          href={post.media_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 mt-3 text-rose-600 hover:text-rose-700 text-sm font-medium"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                          Ver contenido
-                        </a>
-                      )}
+                      {post.media_url && (() => {
+                        const ytId = getYouTubeId(post.media_url)
+                        return ytId ? (
+                          <div className="mt-4 rounded-xl overflow-hidden aspect-video">
+                            <iframe
+                              src={`https://www.youtube.com/embed/${ytId}`}
+                              title={post.title ?? 'Video'}
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                              allowFullScreen
+                              className="w-full h-full"
+                            />
+                          </div>
+                        ) : (
+                          <a
+                            href={post.media_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 mt-3 text-rose-600 hover:text-rose-700 text-sm font-medium"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                            Ver contenido
+                          </a>
+                        )
+                      })()}
                       <p className="text-xs text-gray-400 mt-3">
                         {format(new Date(post.created_at), "d 'de' MMMM, yyyy", { locale: es })}
                       </p>
