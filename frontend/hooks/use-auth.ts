@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useState, useEffect, createContext, useContext, useRef, useCallback } from 'react'
-import { createClient, SupabaseClient, User, Session } from '@supabase/supabase-js'
+import React, { useState, useEffect, createContext, useContext, useCallback } from 'react'
+import { SupabaseClient, User, Session } from '@supabase/supabase-js'
+import { getBrowserClient } from '@/lib/supabase-browser'
 
 export interface UserProfile {
   id: string
@@ -36,19 +37,9 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const sbRef = useRef<SupabaseClient | null>(null)
-
-  // Single Supabase client, lazily created in the browser only.
-  // Exposed via context so all components share the same instance — no dual token-refresh conflicts.
-  const getClient = useCallback((): SupabaseClient | null => {
-    if (typeof window === 'undefined') return null
-    if (!sbRef.current) {
-      const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-      const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-      if (url && key) sbRef.current = createClient(url, key)
-    }
-    return sbRef.current
-  }, [])
+  // Always the module-level singleton — never a per-mount instance.
+  // This is what prevents refresh-token races and navigator.locks deadlocks.
+  const getClient = useCallback((): SupabaseClient | null => getBrowserClient(), [])
 
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -82,17 +73,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return
     }
 
+    let active = true
+
+    // Safety net: never let the app hang on the loading spinner. If getSession
+    // stalls for any reason, render the app (logged-out) after a few seconds.
+    const failsafe = setTimeout(() => {
+      if (active) setLoading(false)
+    }, 8000)
+
     // Load initial session
     client.auth.getSession().then(async ({ data: { session } }) => {
+      if (!active) return
       setSession(session)
       setUser(session?.user ?? null)
       if (session?.user) await loadUserProfile(session.user.id)
-      setLoading(false)
-    }).catch(() => setLoading(false))
+      if (active) setLoading(false)
+    }).catch(() => { if (active) setLoading(false) })
 
     // Listen for auth changes (token refresh, sign in/out, etc.)
     const { data: { subscription } } = client.auth.onAuthStateChange(
       async (event, session) => {
+        if (!active) return
         setSession(session)
         setUser(session?.user ?? null)
         if (session?.user) {
@@ -101,11 +102,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Only clear profile on explicit sign-out, not on TOKEN_REFRESHED
           setProfile(null)
         }
-        setLoading(false)
+        if (active) setLoading(false)
       }
     )
 
-    return () => subscription.unsubscribe()
+    return () => {
+      active = false
+      clearTimeout(failsafe)
+      subscription.unsubscribe()
+    }
   }, [isClient, getClient, loadUserProfile])
 
   const handleSignUp = useCallback(async (

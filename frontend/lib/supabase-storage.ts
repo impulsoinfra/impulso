@@ -1,18 +1,16 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { SupabaseClient } from '@supabase/supabase-js'
+import { getBrowserClient } from './supabase-browser'
 
-// Función helper para obtener el cliente de Supabase de forma lazy
+// Reuse the single browser client — never create a second instance.
 function getSupabaseClient(): SupabaseClient {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  if (!supabaseUrl || !supabaseAnonKey) {
+  const client = getBrowserClient()
+  if (!client) {
     throw new Error(
-      'NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY son requeridos. ' +
-      'En producción, configura estas variables en Vercel (Settings > Environment Variables).'
+      'Supabase client no disponible. Verificá NEXT_PUBLIC_SUPABASE_URL y ' +
+      'NEXT_PUBLIC_SUPABASE_ANON_KEY (en producción, en Vercel > Settings > Environment Variables).'
     )
   }
-
-  return createClient(supabaseUrl, supabaseAnonKey)
+  return client
 }
 
 export interface UploadResult {
