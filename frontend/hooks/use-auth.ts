@@ -81,7 +81,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (active) setLoading(false)
     }, 8000)
 
-    // Load initial session
+    // Load the initial session. The .then runs after the auth lock is
+    // released, so awaiting a Supabase query (loadUserProfile) here is safe.
     client.auth.getSession().then(async ({ data: { session } }) => {
       if (!active) return
       setSession(session)
@@ -91,18 +92,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }).catch(() => { if (active) setLoading(false) })
 
     // Listen for auth changes (token refresh, sign in/out, etc.)
+    //
+    // CRITICAL: this callback runs while GoTrueClient holds its auth lock.
+    // It MUST stay synchronous — never `await`, and never call any Supabase
+    // method (getSession, queries, etc.) directly inside it. Doing so
+    // deadlocks the lock (the query needs the lock the callback is holding),
+    // which freezes getSession forever and looks like "session lost on
+    // refresh". So: update state synchronously and defer DB work to a
+    // macrotask that runs after the lock is released.
     const { data: { subscription } } = client.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         if (!active) return
         setSession(session)
         setUser(session?.user ?? null)
         if (session?.user) {
-          await loadUserProfile(session.user.id)
+          const uid = session.user.id
+          setTimeout(() => { if (active) loadUserProfile(uid) }, 0)
         } else if (event === 'SIGNED_OUT') {
           // Only clear profile on explicit sign-out, not on TOKEN_REFRESHED
           setProfile(null)
         }
-        if (active) setLoading(false)
+        setLoading(false)
       }
     )
 
@@ -137,8 +147,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data, error } = await client.auth.signInWithPassword({ email, password })
       if (error) throw error
-      // Don't await profile load here — onAuthStateChange handles it.
-      // Awaiting here would block the login page's finally block.
+      // Set state synchronously so the login page's redirect to /dashboard
+      // sees `user` immediately (ProtectedRoute would otherwise bounce back).
+      // Don't await the profile — it loads via onAuthStateChange / in the bg.
+      if (data.session) {
+        setSession(data.session)
+        setUser(data.user)
+      }
       return { data, error: null }
     } catch (err) {
       return { data: null, error: err }

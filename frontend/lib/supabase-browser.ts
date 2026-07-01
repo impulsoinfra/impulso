@@ -4,11 +4,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js'
 //
 // This MUST be a module-level singleton. Creating more than one client in the
 // same browser tab makes multiple GoTrueClient instances share the same auth
-// storage key, which causes:
-//   - refresh-token rotation races ("Invalid Refresh Token: Already Used")
-//     that wipe the session on refresh/navigation, and
-//   - navigator.locks contention that makes signIn/getSession hang forever
-//     until cookies + cache are cleared.
+// storage key, which causes refresh-token races and lock contention.
 //
 // Never call createClient() elsewhere in browser code — always import this.
 let browserClient: SupabaseClient | null = null
@@ -30,8 +26,7 @@ export function getBrowserClient(): SupabaseClient | null {
       autoRefreshToken: true,
       detectSessionInUrl: true,
       // Explicit, stable storage key. A fresh key also gives every user a clean
-      // slate on deploy, discarding any corrupted token left by the old
-      // multi-instance behavior.
+      // slate on deploy, discarding any corrupted token from earlier bugs.
       storageKey: 'impulso-auth',
     },
   })
