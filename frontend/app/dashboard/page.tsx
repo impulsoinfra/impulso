@@ -74,6 +74,7 @@ function DashboardContent() {
   const [postMediaUrl, setPostMediaUrl] = useState('')
   const [savingPost, setSavingPost] = useState(false)
   const [postMsg, setPostMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [deletingPostId, setDeletingPostId] = useState<string | null>(null)
 
   // Goal form
   const [goalTitle, setGoalTitle] = useState('')
@@ -169,9 +170,19 @@ function DashboardContent() {
 
   const handleDeletePost = async (id: string) => {
     const client = getClient()
-    if (!client) return
-    await client.from('posts').delete().eq('id', id)
-    setPosts((prev) => prev.filter((p) => p.id !== id))
+    if (!client || !user) return
+    setDeletingPostId(id)
+    try {
+      const { error } = await client.from('posts').delete().eq('id', id).eq('creator_id', user.id)
+      if (error) {
+        console.error('[deletePost]', error)
+        setPostMsg({ ok: false, text: 'Error al eliminar la publicación.' })
+      } else {
+        setPosts((prev) => prev.filter((p) => p.id !== id))
+      }
+    } finally {
+      setDeletingPostId(null)
+    }
   }
 
   const handleSaveGoal = async (e: React.FormEvent) => {
@@ -442,8 +453,16 @@ function DashboardContent() {
                             </div>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-gray-400 hover:text-red-500 shrink-0">
-                                  <Trash2 className="w-4 h-4" />
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-gray-400 hover:text-red-500 shrink-0"
+                                  disabled={deletingPostId === post.id}
+                                >
+                                  {deletingPostId === post.id
+                                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                                    : <Trash2 className="w-4 h-4" />
+                                  }
                                 </Button>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
