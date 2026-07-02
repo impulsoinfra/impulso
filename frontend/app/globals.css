@@ -155,6 +155,15 @@
   padding-inline: 24px;
 }
 
+/* The design is sized for mobile (1x). On desktop it reads too small, so scale
+   the whole UI up ~25% — same effect as a browser 125% zoom, but built-in.
+   Content still reflows (no horizontal scroll) because the layout is fluid. */
+@media (min-width: 1024px) {
+  body {
+    zoom: 1.25;
+  }
+}
+
 /* Signature "lineup" marquee — festival-style category strip */
 @keyframes impulso-marquee {
   from { transform: translateX(0); }
