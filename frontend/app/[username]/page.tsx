@@ -3,11 +3,11 @@ import Link from 'next/link'
 import { createServerClient } from '@/lib/supabase-server'
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
-import { Heart, Globe, Calendar, FileText, ExternalLink } from 'lucide-react'
+import { Globe, Calendar, FileText, ExternalLink } from 'lucide-react'
+import { ImpulsarButton } from '@/components/support/impulsar-button'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import type { Metadata } from 'next'
@@ -138,13 +138,12 @@ export default async function CreatorProfilePage({ params }: Props) {
           </div>
 
           <div className="flex-shrink-0">
-            <Button
-              size="lg"
-              className="bg-rose-600 hover:bg-rose-700 text-white px-8 gap-2"
-            >
-              <Heart className="w-4 h-4" />
-              Apoyar a {profile.name.split(' ')[0]}
-            </Button>
+            <ImpulsarButton
+              creatorId={profile.id}
+              creatorName={profile.name}
+              creatorUsername={username}
+              variant="primary"
+            />
           </div>
         </div>
 
@@ -189,9 +188,18 @@ export default async function CreatorProfilePage({ params }: Props) {
                           </a>
                         )
                       })()}
-                      <p className="text-xs text-gray-400 mt-3">
-                        {format(new Date(post.created_at), "d 'de' MMMM, yyyy", { locale: es })}
-                      </p>
+                      <div className="flex items-center justify-between mt-4 pt-3 border-t border-rose-50">
+                        <p className="text-xs text-gray-400">
+                          {format(new Date(post.created_at), "d 'de' MMMM, yyyy", { locale: es })}
+                        </p>
+                        <ImpulsarButton
+                          creatorId={profile.id}
+                          creatorName={profile.name}
+                          creatorUsername={username}
+                          postId={post.id}
+                          postTitle={post.title}
+                        />
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
@@ -231,10 +239,15 @@ export default async function CreatorProfilePage({ params }: Props) {
                     {goalPercent}%
                     <span className="block text-xs font-normal text-gray-400">completado</span>
                   </div>
-                  <Button className="w-full bg-rose-600 hover:bg-rose-700 text-white gap-2">
-                    <Heart className="w-4 h-4" />
-                    Apoyar esta meta
-                  </Button>
+                  <div className="[&>button]:w-full">
+                    <ImpulsarButton
+                      creatorId={profile.id}
+                      creatorName={profile.name}
+                      creatorUsername={username}
+                      variant="primary"
+                      label="Apoyar esta meta"
+                    />
+                  </div>
                 </CardContent>
               </Card>
             )}
