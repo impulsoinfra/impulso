@@ -1,217 +1,205 @@
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import Image from "next/image"
-import { Header } from "@/components/layout/header"
-import { Footer } from "@/components/layout/footer"
-import { ROUTES } from "@/lib/constants"
-import { Progress } from "@/components/ui/progress"
-import { Heart } from "lucide-react"
-import { CreatorChips } from "@/components/landing/creator-chips"
+import Link from 'next/link'
+import { Header } from '@/components/layout/header'
+import { Footer } from '@/components/layout/footer'
+import { ROUTES } from '@/lib/constants'
+import { Camera, PenLine, Target } from 'lucide-react'
 
-const FEATURED_CREATORS = [
-  {
-    name: "DJ Pablo",
-    category: "Música · Buenos Aires",
-    goal: "Quiero un Pioneer CDJ",
-    current: 140000,
-    target: 200000,
-    supporters: 87,
-    avatar: "🎧",
-    color: "bg-purple-100",
-  },
-  {
-    name: "Vale Ilustra",
-    category: "Arte · Córdoba",
-    goal: "Imprimir mi primer libro de ilustraciones",
-    current: 85000,
-    target: 120000,
-    supporters: 54,
-    avatar: "🎨",
-    color: "bg-pink-100",
-  },
-  {
-    name: "Mati Foto",
-    category: "Fotografía · Rosario",
-    goal: "Nuevo lente para retratos",
-    current: 48000,
-    target: 60000,
-    supporters: 31,
-    avatar: "📸",
-    color: "bg-yellow-100",
-  },
+const LINEUP = [
+  { label: 'DJS', color: 'text-tinta' },
+  { label: 'ARTISTAS', color: 'text-rosa' },
+  { label: 'MÚSICOS', color: 'text-tinta' },
+  { label: 'FOTÓGRAFOS', color: 'text-naranja' },
+  { label: 'ESCRITORES', color: 'text-tinta' },
+  { label: 'PODCASTERS', color: 'text-rosa' },
+  { label: 'STREAMERS', color: 'text-tinta' },
+  { label: 'EMPRENDEDORES', color: 'text-naranja' },
 ]
+
+const STEPS = [
+  { n: 1, title: 'Creá tu perfil', text: 'Elegí tu username, contá quién sos y subí tu foto.' },
+  { n: 2, title: 'Compartí tu trabajo', text: 'Publicá fotos, audio o texto. Tu comunidad lo ve todo en un solo lugar.' },
+  { n: 3, title: 'Recibí apoyo en pesos', text: 'Tus fans te apoyan vía MercadoPago, directo a tu cuenta.' },
+]
+
+const FEATURED = [
+  { name: 'Vale Ilustra', meta: 'Arte · Córdoba', pct: 71, current: 85000, target: 120000, accent: '#F0355C', btnBorder: '#F0355C', btnText: '#F0355C' },
+  { name: 'Mati Foto', meta: 'Fotografía · Rosario', pct: 80, current: 48000, target: 60000, accent: '#FF9D3D', btnBorder: '#FF9D3D', btnText: '#994f0a' },
+  { name: 'DJ Pablo', meta: 'Música · Buenos Aires', pct: 70, current: 140000, target: 200000, accent: '#1B1A2E', btnBorder: '#1B1A2E', btnText: '#1B1A2E' },
+]
+
+const WAVE = [40, 80, 55, 100, 65, 45, 75, 30, 60, 90]
 
 export default function ImpulsoLanding() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-crema">
       <Header />
 
       {/* Hero */}
-      <section className="py-20 md:py-28">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div className="text-left">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-                Hacé lo que amás y recibí el apoyo de tu comunidad.
-              </h1>
-              <p className="text-lg md:text-xl text-gray-600 mb-8">
-                Compartí tu trabajo, creá una meta y recibí donaciones de tus fans en pesos, directo en tu cuenta.
+      <section className="bg-tinta">
+        <div className="container mx-auto px-5 pt-12 pb-6">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <p className="text-naranja text-xs font-bold uppercase tracking-[0.12em] mb-4">
+                Plataforma argentina de creadores
               </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link href={ROUTES.REGISTER}>
-                  <Button size="lg" className="bg-rose-600 hover:bg-rose-700 text-white px-8 py-3 text-lg w-full">
-                    Crear mi perfil gratis
-                  </Button>
+              <h1 className="disp text-crema text-[38px] md:text-[52px] leading-[1.06] mb-4">
+                HACÉ LO QUE <span className="text-rosa">AMÁS.</span><br />
+                RECIBÍ EL <span className="text-naranja">APOYO</span><br />
+                QUE MERECÉS.
+              </h1>
+              <p className="text-[rgba(251,247,242,0.65)] text-[15px] leading-relaxed max-w-md mb-6">
+                Compartí tu trabajo, creá una meta y recibí donaciones de tu comunidad en pesos, directo a tu cuenta.
+              </p>
+              <div className="flex flex-wrap gap-2.5 mb-3">
+                <Link
+                  href={ROUTES.REGISTER}
+                  className="bg-rosa hover:bg-rosa-hover text-white rounded-lg px-5 py-3 text-sm font-semibold transition-colors"
+                >
+                  Crear mi perfil gratis
                 </Link>
-                <Link href={ROUTES.DISCOVER}>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="border-rose-600 text-rose-600 hover:bg-rose-600 hover:text-white px-8 py-3 text-lg w-full"
-                  >
-                    Explorar creadores
-                  </Button>
+                <Link
+                  href={ROUTES.DISCOVER}
+                  className="border border-[rgba(251,247,242,0.35)] text-crema hover:bg-[rgba(251,247,242,0.08)] rounded-lg px-5 py-3 text-sm font-semibold transition-colors"
+                >
+                  Explorar creadores
                 </Link>
               </div>
-              <p className="text-sm text-gray-500 mt-4">Sin costo fijo · Solo pagás cuando recibís apoyo</p>
+              <p className="text-[rgba(251,247,242,0.4)] text-xs">
+                Sin costo fijo · solo pagás cuando recibís apoyo
+              </p>
             </div>
 
-            <div className="hidden md:block">
-              <div className="w-full h-full rounded-2xl overflow-hidden shadow-xl">
-                <Image
-                  src="/images/landing_image.png"
-                  alt="Creadores en Impulso"
-                  width={640}
-                  height={480}
-                  className="w-full h-full object-cover"
-                  priority
-                />
+            {/* Tilted card collage */}
+            <div className="relative h-[320px] w-full max-w-[360px] mx-auto mt-6 lg:mt-0">
+              {/* Camera card */}
+              <div className="absolute top-0 right-1.5 w-[92px] bg-naranja border-2 border-tinta rounded-[10px] p-2.5 rotate-[8deg]">
+                <Camera className="w-[18px] h-[18px] text-tinta" />
+                <p className="text-[10px] font-semibold text-tinta mt-1.5 leading-tight">Fotos de<br />la fecha</p>
+              </div>
+              {/* Feather / text card */}
+              <div className="absolute bottom-1.5 left-0 w-[112px] bg-[rgba(240,53,92,0.12)] border-2 border-tinta rounded-[10px] p-2.5 -rotate-[9deg]">
+                <PenLine className="w-4 h-4 text-rosa" />
+                <p className="text-[10px] text-tinta mt-1.5 leading-tight">"Todo empezó en 2018..."</p>
+              </div>
+              {/* Main goal card */}
+              <div className="absolute top-7 left-6 right-6 bg-crema border-2 border-tinta rounded-xl -rotate-[3deg] overflow-hidden">
+                <div className="h-1.5 bg-naranja" />
+                <div className="p-3.5">
+                  <div className="flex items-center gap-2 mb-2.5">
+                    <div className="w-7 h-7 rounded-full bg-tinta" />
+                    <div>
+                      <p className="text-xs font-semibold text-tinta leading-tight">DJ Pablo</p>
+                      <p className="text-[10px] text-txt2 leading-tight">Música · Buenos Aires</p>
+                    </div>
+                  </div>
+                  <div className="flex items-end gap-[3px] h-7 mb-3">
+                    {WAVE.map((h, i) => (
+                      <div
+                        key={i}
+                        className="w-1 rounded-[2px]"
+                        style={{ height: `${h}%`, background: h >= 90 ? '#FF9D3D' : '#F0355C' }}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-[11px] font-semibold text-tinta mb-1.5 flex items-center gap-1">
+                    <Target className="w-3 h-3 text-naranja" /> Quiero un Pioneer CDJ
+                  </p>
+                  <div className="h-[7px] bg-track rounded-full overflow-hidden mb-1.5">
+                    <div className="h-full bg-rosa" style={{ width: '70%' }} />
+                  </div>
+                  <p className="text-[10px] text-txt2">$140.000 / $200.000 · 87 apoyos</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Creator types */}
-      <section className="py-16 bg-rose-50">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-3">
-            ¡Creadores de todo tipo!
-          </h2>
-          <p className="text-center text-gray-500 mb-12 text-lg">Desde DJs hasta escritores, desde fotógrafos hasta emprendedores.</p>
-          <CreatorChips />
+      {/* Lineup marquee */}
+      <div className="bg-crema border-y border-tinta overflow-hidden py-4">
+        <div className="impulso-marquee">
+          {[0, 1].map((dup) => (
+            <div key={dup} className="inline-flex" aria-hidden={dup === 1}>
+              {LINEUP.map((c, i) => (
+                <span key={`${dup}-${i}`} className={`disp text-[22px] pr-3.5 ${c.color}`}>
+                  {c.label} ·
+                </span>
+              ))}
+            </div>
+          ))}
         </div>
-      </section>
+      </div>
 
-      {/* How it works */}
-      <section id="como-funciona" className="py-16">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-12">¿Cómo funciona?</h2>
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            <Card className="border-0 shadow-md bg-white rounded-xl">
-              <CardContent className="p-6 text-left">
-                <div className="text-5xl font-bold text-rose-600 mb-4">1</div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">Creá tu perfil</h3>
-                <p className="text-gray-600">
-                  Elegí tu username, contá quién sos, subí tu foto y publicá tu primera meta de financiamiento.
-                </p>
-              </CardContent>
-            </Card>
-            <Card className="border-0 shadow-md bg-white rounded-xl">
-              <CardContent className="p-6 text-left">
-                <div className="text-5xl font-bold text-rose-600 mb-4">2</div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">Compartí tu trabajo</h3>
-                <p className="text-gray-600">
-                  Publicá fotos, audio, texto o links a YouTube y Spotify. Tu comunidad ve todo en un solo lugar.
-                </p>
-              </CardContent>
-            </Card>
-            <Card className="border-0 shadow-md bg-white rounded-xl">
-              <CardContent className="p-6 text-left">
-                <div className="text-5xl font-bold text-rose-600 mb-4">3</div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">Recibí apoyo en pesos</h3>
-                <p className="text-gray-600">
-                  Tus fans te apoyan con el monto que quieran vía MercadoPago. Vos recibís el 90% directo en tu cuenta.
-                </p>
-              </CardContent>
-            </Card>
+      {/* Cómo funciona */}
+      <section id="como-funciona" className="bg-crema px-5 py-12">
+        <div className="container mx-auto">
+          <p className="text-rosa text-xs font-bold uppercase tracking-[0.1em] mb-1.5">El proceso</p>
+          <h2 className="disp text-tinta text-[26px] mb-7">Cómo funciona</h2>
+          <div className="relative pl-11 max-w-xl">
+            <div className="absolute left-[15px] top-1.5 bottom-1.5 w-0.5 bg-[rgba(27,26,46,0.15)]" />
+            {STEPS.map((s, i) => (
+              <div key={s.n} className={`relative ${i < STEPS.length - 1 ? 'mb-7' : ''}`}>
+                <div className="disp absolute -left-11 top-0 w-8 h-8 rounded-full bg-rosa text-white flex items-center justify-center text-[15px]">
+                  {s.n}
+                </div>
+                <p className="font-semibold text-sm text-tinta mb-1">{s.title}</p>
+                <p className="text-[13px] text-txt2 leading-relaxed">{s.text}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Featured creators */}
-      <section id="creadores" className="py-16 bg-rose-50">
-        <div className="container mx-auto px-4">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-              Creadores destacados
-            </h2>
-            <Link href={ROUTES.DISCOVER} className="text-rose-600 hover:text-rose-700 font-medium text-sm">
-              Ver todos
+      {/* Creadores destacados */}
+      <section id="creadores" className="bg-crema px-5 pb-12">
+        <div className="container mx-auto">
+          <div className="flex justify-between items-baseline mb-4">
+            <h2 className="disp text-tinta text-[24px]">Creadores destacados</h2>
+            <Link href={ROUTES.DISCOVER} className="text-xs font-semibold text-rosa hover:text-rosa-hover">
+              Ver todos →
             </Link>
           </div>
-
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {FEATURED_CREATORS.map((creator) => (
-              <Card key={creator.name} className="border-0 shadow-lg hover:shadow-xl transition-shadow bg-white rounded-xl overflow-hidden">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className={`w-14 h-14 ${creator.color} rounded-full flex items-center justify-center text-2xl`}>
-                      {creator.avatar}
-                    </div>
-                    <div>
-                      <p className="font-bold text-gray-900">{creator.name}</p>
-                      <p className="text-xs text-gray-500">{creator.category}</p>
-                    </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {FEATURED.map((c) => (
+              <div key={c.name} className="bg-white border border-borde rounded-[10px] overflow-hidden">
+                <div className="h-1" style={{ background: c.accent }} />
+                <div className="p-3">
+                  <p className="text-[13px] font-semibold text-tinta mb-0.5">{c.name}</p>
+                  <p className="text-[11px] text-txt2 mb-2.5">{c.meta}</p>
+                  <div className="h-1.5 bg-track rounded-full overflow-hidden mb-1.5">
+                    <div className="h-full" style={{ width: `${c.pct}%`, background: c.accent }} />
                   </div>
-
-                  <div className="bg-rose-50 rounded-lg p-4 mb-4">
-                    <p className="text-sm font-medium text-gray-700 mb-3">🎯 {creator.goal}</p>
-                    <Progress
-                      value={Math.round((creator.current / creator.target) * 100)}
-                      className="h-2 mb-2"
-                    />
-                    <div className="flex justify-between text-xs text-gray-500">
-                      <span>${creator.current.toLocaleString('es-AR')} recaudados</span>
-                      <span>Meta ${creator.target.toLocaleString('es-AR')}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1 text-sm text-gray-500">
-                      <Heart className="w-4 h-4 text-red-400" />
-                      {creator.supporters} personas apoyaron
-                    </div>
-                    <Button size="sm" className="bg-rose-600 hover:bg-rose-700 text-white text-xs">
-                      Apoyar
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                  <p className="text-[10px] text-txt2 mb-2.5">
+                    ${c.current.toLocaleString('es-AR')} / ${c.target.toLocaleString('es-AR')}
+                  </p>
+                  <Link
+                    href={ROUTES.DISCOVER}
+                    className="block text-center w-full rounded-md py-1.5 text-xs font-semibold border transition-colors hover:bg-black/[0.03]"
+                    style={{ borderColor: c.btnBorder, color: c.btnText }}
+                  >
+                    Apoyar
+                  </Link>
+                </div>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
       {/* CTA */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <div className="max-w-2xl mx-auto text-center">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              ¿Listo para recibir el apoyo que merecés?
-            </h2>
-            <p className="text-gray-600 mb-8 text-lg">
-              Unite a los creadores argentinos que ya están usando Impulso para financiar sus proyectos.
-            </p>
-            <Link href={ROUTES.REGISTER}>
-              <Button size="lg" className="bg-rose-600 hover:bg-rose-700 text-white px-10 py-3 text-lg">
-                Crear mi perfil gratis
-              </Button>
-            </Link>
-            <p className="text-sm text-gray-400 mt-4">Sin tarjeta de crédito · Sin costo mensual</p>
-          </div>
-        </div>
+      <section className="bg-tinta px-5 py-12 text-center">
+        <h2 className="disp text-crema text-[26px] md:text-[30px] leading-tight mb-2.5">
+          ¿LISTO PARA RECIBIR<br />EL APOYO QUE MERECÉS?
+        </h2>
+        <p className="text-[rgba(251,247,242,0.6)] text-sm mb-5 max-w-md mx-auto">
+          Uníte a los creadores argentinos que ya están usando Impulso.
+        </p>
+        <Link
+          href={ROUTES.REGISTER}
+          className="inline-block bg-rosa hover:bg-rosa-hover text-white rounded-lg px-6 py-3 text-sm font-semibold transition-colors"
+        >
+          Crear mi perfil gratis
+        </Link>
       </section>
 
       <Footer />

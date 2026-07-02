@@ -2,50 +2,29 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Menu, X, User, LogOut } from 'lucide-react'
-import { APP_NAME, ROUTES } from '@/lib/constants'
+import { Menu, X, LogOut } from 'lucide-react'
+import { ROUTES } from '@/lib/constants'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/use-auth'
 
-interface HeaderProps {
-  user?: {
-    id: string
-    name: string
-    avatar?: string
-    role: 'artist' | 'supporter' | 'admin'
-  } | null
-  onLogout?: () => void
-}
+const CREMA = '#FBF7F2'
 
-export function Header({ user, onLogout }: HeaderProps) {
+export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isClient, setIsClient] = useState(false)
   const pathname = usePathname()
-  
-  // Solo usar useAuth cuando estemos en el cliente
+
   const authHook = useAuth()
-  const { user: authUser, profile, signOut } = isClient ? authHook : { user: null, profile: null, signOut: () => Promise.resolve({ error: null }) }
+  const { user: authUser, profile, signOut } = isClient
+    ? authHook
+    : { user: null, profile: null, signOut: () => Promise.resolve({ error: null }) }
 
-  useEffect(() => {
-    setIsClient(true)
-  }, [])
+  useEffect(() => { setIsClient(true) }, [])
 
-  // Usar el usuario del contexto de autenticación si no se proporciona uno
-  const currentUser = user || (isClient && authUser && profile ? {
-    id: authUser.id,
-    name: profile.name,
-    role: profile.role
-  } : null)
-
-  const handleLogout = async () => {
-    if (onLogout) {
-      onLogout()
-    } else if (isClient) {
-      await signOut()
-    }
-  }
+  const currentUser = isClient && authUser && profile
+    ? { id: authUser.id, name: profile.name, role: profile.role }
+    : null
 
   const isActive = (path: string) => pathname === path
 
@@ -56,26 +35,26 @@ export function Header({ user, onLogout }: HeaderProps) {
   ]
 
   return (
-    <header className="border-b border-gray-100 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
+    <header className="bg-tinta sticky top-0 z-50">
+      <div className="container mx-auto px-5">
+        <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href={ROUTES.HOME} className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-rose-900 rounded-full flex items-center justify-center">
-              <span className="text-white font-bold text-sm">I</span>
+          <Link href={ROUTES.HOME} className="flex items-center gap-2">
+            <div className="disp w-[26px] h-[26px] rounded-[7px] bg-rosa text-white flex items-center justify-center text-[15px] leading-none">
+              i
             </div>
-            <span className="text-xl font-bold text-rose-900">{APP_NAME}</span>
+            <span className="disp text-crema text-[17px] tracking-wide">IMPULSO</span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
+          {/* Desktop nav */}
+          <nav className="hidden md:flex items-center gap-7">
             {navigationItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'text-gray-600 hover:text-rose-900 transition-colors',
-                  isActive(item.href) && 'text-rose-900 font-medium'
+                  'text-sm transition-colors',
+                  isActive(item.href) ? 'text-crema font-medium' : 'text-[rgba(251,247,242,0.65)] hover:text-crema'
                 )}
               >
                 {item.label}
@@ -83,101 +62,112 @@ export function Header({ user, onLogout }: HeaderProps) {
             ))}
           </nav>
 
-          {/* Desktop Actions */}
-          <div className="hidden md:flex items-center space-x-4">
+          {/* Desktop actions */}
+          <div className="hidden md:flex items-center gap-3">
             {currentUser ? (
-              <div className="flex items-center space-x-4">
-                <Link href={ROUTES.DASHBOARD}>
-                  <Button className="bg-rose-600 hover:bg-rose-700 text-white">
-                    Mi perfil
-                  </Button>
+              <>
+                <Link
+                  href={ROUTES.DASHBOARD}
+                  className="text-sm text-[rgba(251,247,242,0.65)] hover:text-crema transition-colors"
+                >
+                  Hola, {currentUser.name.split(' ')[0]}
                 </Link>
-                <Link href={ROUTES.DASHBOARD}>
-                  <Button variant="outline" size="sm">
-                    <User className="h-4 w-4 mr-2" />
-                    {currentUser.name}
-                  </Button>
+                <Link
+                  href={ROUTES.DASHBOARD}
+                  className="bg-rosa hover:bg-rosa-hover text-white rounded-lg px-4 py-2 text-[13px] font-semibold transition-colors"
+                >
+                  Mi panel
                 </Link>
-                <Button variant="ghost" size="sm" onClick={handleLogout}>
+                <button
+                  onClick={() => signOut()}
+                  aria-label="Cerrar sesión"
+                  className="text-[rgba(251,247,242,0.5)] hover:text-crema transition-colors p-1.5"
+                >
                   <LogOut className="h-4 w-4" />
-                </Button>
-              </div>
+                </button>
+              </>
             ) : (
               <>
-                <Link href={ROUTES.LOGIN}>
-                  <Button variant="outline" className="border-rose-900 text-rose-900 hover:bg-rose-900 hover:text-white">
-                    Iniciar sesión
-                  </Button>
+                <Link
+                  href={ROUTES.LOGIN}
+                  className="text-sm text-[rgba(251,247,242,0.75)] hover:text-crema transition-colors px-2"
+                >
+                  Iniciar sesión
                 </Link>
-                <Link href={ROUTES.REGISTER}>
-                  <Button className="bg-rose-600 hover:bg-rose-700 text-white">
-                    Registrarse
-                  </Button>
+                <Link
+                  href={ROUTES.REGISTER}
+                  className="bg-rosa hover:bg-rosa-hover text-white rounded-lg px-4 py-2 text-[13px] font-semibold transition-colors"
+                >
+                  Crear mi perfil
                 </Link>
               </>
             )}
           </div>
 
-          {/* Mobile Menu Button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden"
+          {/* Mobile toggle */}
+          <button
+            className="md:hidden text-crema p-1.5"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            aria-label="Menú"
           >
             {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
+          </button>
         </div>
 
-        {/* Mobile Navigation */}
+        {/* Mobile nav */}
         {isMobileMenuOpen && (
-          <div className="md:hidden mt-4 pb-4 border-t border-gray-100">
-            <nav className="flex flex-col space-y-4 mt-4">
+          <div className="md:hidden pb-4 border-t border-[rgba(251,247,242,0.1)]">
+            <nav className="flex flex-col gap-1 mt-3">
               {navigationItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={cn(
-                    'text-gray-600 hover:text-rose-900 transition-colors py-2',
-                    isActive(item.href) && 'text-rose-900 font-medium'
-                  )}
+                  className="text-[rgba(251,247,242,0.7)] hover:text-crema transition-colors py-2 text-sm"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   {item.label}
                 </Link>
               ))}
-              
-              {currentUser ? (
-                <div className="flex flex-col space-y-2 pt-4 border-t border-gray-100">
-                  <Link href={ROUTES.DASHBOARD}>
-                    <Button variant="outline" className="w-full justify-start">
-                      <User className="h-4 w-4 mr-2" />
-                      {currentUser.name}
-                    </Button>
-                  </Link>
-                  <Button variant="ghost" className="w-full justify-start" onClick={handleLogout}>
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Cerrar sesión
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex flex-col space-y-2 pt-4 border-t border-gray-100">
-                  <Link href={ROUTES.LOGIN}>
-                    <Button variant="outline" className="w-full">
+              <div className="flex flex-col gap-2 pt-3 mt-2 border-t border-[rgba(251,247,242,0.1)]">
+                {currentUser ? (
+                  <>
+                    <Link
+                      href={ROUTES.DASHBOARD}
+                      className="bg-rosa hover:bg-rosa-hover text-white rounded-lg px-4 py-2.5 text-sm font-semibold text-center"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Mi panel
+                    </Link>
+                    <button
+                      onClick={() => { signOut(); setIsMobileMenuOpen(false) }}
+                      className="text-[rgba(251,247,242,0.7)] hover:text-crema text-sm py-2 flex items-center gap-2"
+                    >
+                      <LogOut className="h-4 w-4" /> Cerrar sesión
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href={ROUTES.LOGIN}
+                      className="border border-[rgba(251,247,242,0.35)] text-crema rounded-lg px-4 py-2.5 text-sm font-semibold text-center"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
                       Iniciar sesión
-                    </Button>
-                  </Link>
-                  <Link href={ROUTES.REGISTER}>
-                    <Button className="w-full bg-rose-600 hover:bg-rose-700 text-white">
-                      Registrarse
-                    </Button>
-                  </Link>
-                </div>
-              )}
+                    </Link>
+                    <Link
+                      href={ROUTES.REGISTER}
+                      className="bg-rosa hover:bg-rosa-hover text-white rounded-lg px-4 py-2.5 text-sm font-semibold text-center"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Crear mi perfil
+                    </Link>
+                  </>
+                )}
+              </div>
             </nav>
           </div>
         )}
       </div>
     </header>
   )
-} 
+}

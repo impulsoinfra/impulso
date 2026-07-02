@@ -3,9 +3,6 @@ import Link from 'next/link'
 import { createServerClient } from '@/lib/supabase-server'
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
-import { Card, CardContent } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
-import { Badge } from '@/components/ui/badge'
 import { Globe, Calendar, FileText, ExternalLink } from 'lucide-react'
 import { ImpulsarButton } from '@/components/support/impulsar-button'
 import { format } from 'date-fns'
@@ -17,6 +14,16 @@ function getYouTubeId(url: string): string | null {
     /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
   )
   return match ? match[1] : null
+}
+
+// Left-border accent per content type (style guide §4)
+function postAccent(postType: string): string {
+  switch (postType) {
+    case 'audio': return '#F0355C'        // rosa
+    case 'image':
+    case 'link': return '#FF9D3D'         // naranja (foto/video)
+    default: return '#1B1A2E'             // tinta (texto/anuncio)
+  }
 }
 
 interface Props {
@@ -77,67 +84,37 @@ export default async function CreatorProfilePage({ params }: Props) {
     ? Math.min(Math.round((Number(goal.current_amount) / Number(goal.target_amount)) * 100), 100)
     : 0
 
-  const socialLinks: Record<string, string> = profile.social_links || {}
-
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-crema">
       <Header />
 
-      {/* Cover + Avatar */}
-      <div className="bg-rose-100 h-40 w-full relative" />
-      <div className="container mx-auto px-4">
-        <div className="relative -mt-12 mb-4 flex items-end gap-5">
-          {profile.avatar_url ? (
-            <img
-              src={profile.avatar_url}
-              alt={profile.name}
-              className="w-24 h-24 rounded-full border-4 border-white shadow-md object-cover"
-            />
-          ) : (
-            <div className="w-24 h-24 rounded-full border-4 border-white shadow-md bg-rose-600 flex items-center justify-center text-white text-2xl font-bold">
-              {initials}
-            </div>
-          )}
-        </div>
-
-        {/* Profile info + action */}
-        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-10">
-          <div className="max-w-xl">
-            <h1 className="text-3xl font-bold text-gray-900">{profile.name}</h1>
-            <p className="text-gray-500 mb-2">@{username}</p>
-
-            {profile.creator_type && (
-              <Badge className="bg-rose-100 text-rose-700 border-0 mb-3">
-                {profile.creator_type}
-              </Badge>
-            )}
-
-            {profile.bio && (
-              <p className="text-gray-700 leading-relaxed mb-3">{profile.bio}</p>
-            )}
-
-            <div className="flex flex-wrap gap-3 text-sm text-gray-500">
-              {profile.website && (
-                <a
-                  href={profile.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 hover:text-rose-600 transition-colors"
-                >
-                  <Globe className="w-4 h-4" />
-                  {profile.website.replace(/^https?:\/\//, '')}
-                  <ExternalLink className="w-3 h-3" />
-                </a>
+      {/* Profile header — tinta */}
+      <section className="bg-tinta">
+        <div className="container mx-auto px-5 pt-9 pb-6">
+          <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
+            <div className="flex items-center gap-3.5">
+              {profile.avatar_url ? (
+                <img
+                  src={profile.avatar_url}
+                  alt={profile.name}
+                  className="w-[60px] h-[60px] rounded-full object-cover border-2 border-[rgba(251,247,242,0.25)] shrink-0"
+                />
+              ) : (
+                <div className="disp w-[60px] h-[60px] rounded-full bg-rosa text-white flex items-center justify-center text-2xl border-2 border-[rgba(251,247,242,0.25)] shrink-0">
+                  {initials}
+                </div>
               )}
-              <span className="flex items-center gap-1">
-                <Calendar className="w-4 h-4" />
-                Miembro desde{' '}
-                {format(new Date(profile.created_at), 'MMMM yyyy', { locale: es })}
-              </span>
+              <div>
+                <h1 className="disp text-crema text-[22px] leading-none mb-1">{profile.name}</h1>
+                <p className="text-[rgba(251,247,242,0.5)] text-[13px] mb-1.5">@{username}</p>
+                {profile.creator_type && (
+                  <span className="inline-block bg-naranja text-tinta text-[10px] font-bold uppercase tracking-wide px-2.5 py-[3px] rounded-full">
+                    {profile.creator_type}
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
 
-          <div className="flex-shrink-0">
             <ImpulsarButton
               creatorId={profile.id}
               creatorName={profile.name}
@@ -145,163 +122,169 @@ export default async function CreatorProfilePage({ params }: Props) {
               variant="primary"
             />
           </div>
+
+          {profile.bio && (
+            <p className="text-[rgba(251,247,242,0.7)] text-sm leading-relaxed max-w-lg mb-3.5">
+              {profile.bio}
+            </p>
+          )}
+
+          <div className="flex gap-[18px] flex-wrap">
+            {profile.website && (
+              <a
+                href={profile.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[rgba(251,247,242,0.5)] hover:text-crema text-xs flex items-center gap-1 transition-colors"
+              >
+                <Globe className="w-[13px] h-[13px]" />
+                {profile.website.replace(/^https?:\/\//, '')}
+              </a>
+            )}
+            <span className="text-[rgba(251,247,242,0.5)] text-xs flex items-center gap-1">
+              <Calendar className="w-[13px] h-[13px]" />
+              Miembro desde {format(new Date(profile.created_at), 'MMMM yyyy', { locale: es })}
+            </span>
+          </div>
         </div>
 
-        {/* Content grid */}
-        <div className="grid lg:grid-cols-3 gap-8 pb-16">
-          {/* Posts */}
-          <div className="lg:col-span-2">
-            <h2 className="text-xl font-bold text-gray-900 mb-5">
-              Publicaciones
-            </h2>
+        {/* Ticket divider */}
+        <div className="px-5 pb-4 text-[rgba(251,247,242,0.2)] text-[10px] tracking-[6px] overflow-hidden whitespace-nowrap select-none">
+          ••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+        </div>
+      </section>
 
-            {posts && posts.length > 0 ? (
-              <div className="space-y-4">
-                {posts.map((post) => (
-                  <Card key={post.id} className="border border-rose-100 shadow-sm hover:shadow-md transition-shadow">
-                    <CardContent className="p-5">
-                      {post.title && (
-                        <h3 className="font-bold text-gray-900 mb-2 text-lg">{post.title}</h3>
-                      )}
-                      <p className="text-gray-700 leading-relaxed line-clamp-4">{post.content}</p>
-                      {post.media_url && (() => {
-                        const ytId = getYouTubeId(post.media_url)
-                        return ytId ? (
-                          <div className="mt-4 rounded-xl overflow-hidden aspect-video">
-                            <iframe
-                              src={`https://www.youtube.com/embed/${ytId}`}
-                              title={post.title ?? 'Video'}
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                              allowFullScreen
-                              className="w-full h-full"
-                            />
-                          </div>
-                        ) : (
-                          <a
-                            href={post.media_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 mt-3 text-rose-600 hover:text-rose-700 text-sm font-medium"
-                          >
-                            <ExternalLink className="w-3.5 h-3.5" />
-                            Ver contenido
-                          </a>
-                        )
-                      })()}
-                      <div className="flex items-center justify-between mt-4 pt-3 border-t border-rose-50">
-                        <p className="text-xs text-gray-400">
-                          {format(new Date(post.created_at), "d 'de' MMMM, yyyy", { locale: es })}
-                        </p>
-                        <ImpulsarButton
-                          creatorId={profile.id}
-                          creatorName={profile.name}
-                          creatorUsername={username}
-                          postId={post.id}
-                          postTitle={post.title}
+      {/* Content — crema */}
+      <section className="bg-crema px-5 py-6">
+        <div className="container mx-auto max-w-2xl">
+          {/* Featured goal — highlighted card */}
+          {goal && (
+            <div className="bg-white border-2 border-tinta rounded-xl overflow-hidden mb-6">
+              <div className="h-1.5 bg-naranja" />
+              <div className="p-[18px]">
+                <p className="text-naranja text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5">
+                  Meta actual
+                </p>
+                <h3 className="disp text-tinta text-[19px] mb-1.5">{goal.title}</h3>
+                {goal.description && (
+                  <p className="text-[13px] text-txt2 leading-relaxed mb-4">{goal.description}</p>
+                )}
+                <div className="h-2 bg-track rounded-full overflow-hidden mb-2.5">
+                  <div className="h-full bg-rosa" style={{ width: `${goalPercent}%` }} />
+                </div>
+                <div className="flex justify-between items-baseline mb-4">
+                  <span className="disp text-tinta text-[28px] leading-none">{goalPercent}%</span>
+                  <span className="text-xs text-txt2">
+                    ${Number(goal.current_amount).toLocaleString('es-AR')} de ${Number(goal.target_amount).toLocaleString('es-AR')}
+                  </span>
+                </div>
+                <div className="[&>button]:w-full [&>button]:justify-center">
+                  <ImpulsarButton
+                    creatorId={profile.id}
+                    creatorName={profile.name}
+                    creatorUsername={username}
+                    variant="primary"
+                    label="Apoyar esta meta"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Posts */}
+          <h2 className="disp text-tinta text-[20px] mb-3.5">Publicaciones</h2>
+
+          {posts && posts.length > 0 ? (
+            <div className="space-y-3 mb-6">
+              {posts.map((post) => {
+                const accent = postAccent(post.post_type)
+                const ytId = post.media_url ? getYouTubeId(post.media_url) : null
+                return (
+                  <div
+                    key={post.id}
+                    className="bg-white border border-borde rounded-[10px] p-4"
+                    style={{ borderLeft: `4px solid ${accent}` }}
+                  >
+                    {post.title && (
+                      <p className="font-semibold text-sm text-tinta mb-1.5">{post.title}</p>
+                    )}
+                    {post.content && (
+                      <p className="text-[13px] text-txt2 leading-relaxed mb-2.5 whitespace-pre-wrap">
+                        {post.content}
+                      </p>
+                    )}
+
+                    {ytId && (
+                      <div className="rounded-lg overflow-hidden aspect-video mb-2.5">
+                        <iframe
+                          src={`https://www.youtube.com/embed/${ytId}`}
+                          title={post.title ?? 'Video'}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                          allowFullScreen
+                          className="w-full h-full"
                         />
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <Card className="border border-dashed border-rose-200 bg-rose-50/50">
-                <CardContent className="p-10 text-center">
-                  <FileText className="w-10 h-10 text-rose-300 mx-auto mb-3" />
-                  <p className="text-gray-500 font-medium">Aún no hay publicaciones</p>
-                  <p className="text-gray-400 text-sm mt-1">
-                    Seguí a {profile.name.split(' ')[0]} para no perderte nada.
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-5">
-            {/* Active goal */}
-            {goal && (
-              <Card className="border border-rose-200 shadow-sm">
-                <CardContent className="p-5">
-                  <h3 className="font-bold text-gray-900 mb-1">🎯 Meta actual</h3>
-                  <p className="text-gray-700 font-medium mb-1">{goal.title}</p>
-                  {goal.description && (
-                    <p className="text-gray-500 text-sm mb-3">{goal.description}</p>
-                  )}
-                  <Progress value={goalPercent} className="h-2.5 mb-2" />
-                  <div className="flex justify-between text-xs text-gray-500 mb-4">
-                    <span className="font-medium text-rose-600">
-                      ${Number(goal.current_amount).toLocaleString('es-AR')}
-                    </span>
-                    <span>Meta ${Number(goal.target_amount).toLocaleString('es-AR')}</span>
-                  </div>
-                  <div className="text-center text-2xl font-bold text-gray-900 mb-4">
-                    {goalPercent}%
-                    <span className="block text-xs font-normal text-gray-400">completado</span>
-                  </div>
-                  <div className="[&>button]:w-full">
-                    <ImpulsarButton
-                      creatorId={profile.id}
-                      creatorName={profile.name}
-                      creatorUsername={username}
-                      variant="primary"
-                      label="Apoyar esta meta"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Stats card */}
-            <Card className="border border-rose-100 shadow-sm">
-              <CardContent className="p-5">
-                <h3 className="font-bold text-gray-900 mb-4">Acerca de</h3>
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Publicaciones</span>
-                    <span className="font-medium text-gray-900">{posts?.length ?? 0}</span>
-                  </div>
-                  {profile.creator_type && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Tipo de creador</span>
-                      <span className="font-medium text-rose-600">{profile.creator_type}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">En Impulso desde</span>
-                    <span className="font-medium text-gray-900">
-                      {format(new Date(profile.created_at), 'MMM yyyy', { locale: es })}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Social links */}
-            {Object.keys(socialLinks).length > 0 && (
-              <Card className="border border-rose-100 shadow-sm">
-                <CardContent className="p-5">
-                  <h3 className="font-bold text-gray-900 mb-3">Redes sociales</h3>
-                  <div className="space-y-2">
-                    {Object.entries(socialLinks).map(([platform, url]) => (
+                    )}
+                    {post.media_url && !ytId && (
                       <a
-                        key={platform}
-                        href={url as string}
+                        href={post.media_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-sm text-gray-600 hover:text-rose-600 transition-colors"
+                        className="inline-flex items-center gap-1 mb-2.5 text-rosa hover:text-rosa-hover text-[13px] font-medium"
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
-                        <span className="capitalize">{platform}</span>
+                        Ver contenido
                       </a>
-                    ))}
+                    )}
+
+                    <div className="flex justify-between items-center">
+                      <span className="text-[11px] text-muted2">
+                        {format(new Date(post.created_at), "d 'de' MMMM, yyyy", { locale: es })}
+                      </span>
+                      <ImpulsarButton
+                        creatorId={profile.id}
+                        creatorName={profile.name}
+                        creatorUsername={username}
+                        postId={post.id}
+                        postTitle={post.title}
+                      />
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="bg-white border border-dashed border-borde rounded-[10px] p-10 text-center mb-6">
+              <FileText className="w-9 h-9 text-muted2 mx-auto mb-3" />
+              <p className="text-txt2 font-medium text-sm">Aún no hay publicaciones</p>
+              <p className="text-muted2 text-xs mt-1">
+                Seguí a {profile.name.split(' ')[0]} para no perderte nada.
+              </p>
+            </div>
+          )}
+
+          {/* About */}
+          <div className="bg-white border border-borde rounded-[10px] p-4">
+            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-txt2 mb-3">Acerca de</p>
+            <div className="flex justify-between py-2 border-b border-[rgba(27,26,46,0.08)]">
+              <span className="text-[13px] text-txt2">Publicaciones</span>
+              <span className="text-[13px] font-semibold text-tinta">{posts?.length ?? 0}</span>
+            </div>
+            {profile.creator_type && (
+              <div className="flex justify-between py-2 border-b border-[rgba(27,26,46,0.08)]">
+                <span className="text-[13px] text-txt2">Tipo de creador</span>
+                <span className="text-[13px] font-semibold text-rosa">{profile.creator_type}</span>
+              </div>
             )}
+            <div className="flex justify-between py-2">
+              <span className="text-[13px] text-txt2">En Impulso desde</span>
+              <span className="text-[13px] font-semibold text-tinta">
+                {format(new Date(profile.created_at), 'MMM yyyy', { locale: es })}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
       <Footer />
     </div>
