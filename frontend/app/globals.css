@@ -145,6 +145,14 @@
   letter-spacing: 0.01em;
 }
 
+/* Responsive content container — section backgrounds stay full-bleed, the
+   content inside is capped at 1200px with 24px side padding. */
+.wrap {
+  max-width: 1200px;
+  margin-inline: auto;
+  padding-inline: 24px;
+}
+
 /* Signature "lineup" marquee — festival-style category strip */
 @keyframes impulso-marquee {
   from { transform: translateX(0); }

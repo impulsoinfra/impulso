@@ -36,8 +36,8 @@ export default function ImpulsoLanding() {
 
       {/* Hero */}
       <section className="bg-tinta">
-        <div className="container mx-auto px-5 pt-12 pb-6">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+        <div className="wrap pt-12 pb-6">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
               <p className="text-naranja text-xs font-bold uppercase tracking-[0.12em] mb-4">
                 Plataforma argentina de creadores
@@ -70,7 +70,7 @@ export default function ImpulsoLanding() {
             </div>
 
             {/* Tilted card collage */}
-            <div className="relative h-[320px] w-full max-w-[360px] mx-auto mt-6 lg:mt-0">
+            <div className="relative h-[320px] w-full max-w-[360px] mx-auto mt-6 md:mt-0">
               {/* Camera card */}
               <div className="absolute top-0 right-1.5 w-[92px] bg-naranja border-2 border-tinta rounded-[10px] p-2.5 rotate-[8deg]">
                 <Camera className="w-[18px] h-[18px] text-tinta" />
@@ -117,9 +117,11 @@ export default function ImpulsoLanding() {
 
       {/* Lineup marquee */}
       <div className="bg-crema border-y border-tinta overflow-hidden py-4">
+        {/* 4 copies so the track is always wider than 2x the viewport — the
+            -50% loop stays seamless (no blank gaps) on any screen. */}
         <div className="impulso-marquee">
-          {[0, 1].map((dup) => (
-            <div key={dup} className="inline-flex" aria-hidden={dup === 1}>
+          {[0, 1, 2, 3].map((dup) => (
+            <div key={dup} className="inline-flex" aria-hidden={dup > 0}>
               {LINEUP.map((c, i) => (
                 <span key={`${dup}-${i}`} className={`disp text-[22px] pr-3.5 ${c.color}`}>
                   {c.label} ·
@@ -131,8 +133,8 @@ export default function ImpulsoLanding() {
       </div>
 
       {/* Cómo funciona */}
-      <section id="como-funciona" className="bg-crema px-5 py-12">
-        <div className="container mx-auto">
+      <section id="como-funciona" className="bg-crema py-12">
+        <div className="wrap">
           <p className="text-rosa text-xs font-bold uppercase tracking-[0.1em] mb-1.5">El proceso</p>
           <h2 className="disp text-tinta text-[26px] mb-7">Cómo funciona</h2>
           <div className="relative pl-11 max-w-xl">
@@ -151,15 +153,15 @@ export default function ImpulsoLanding() {
       </section>
 
       {/* Creadores destacados */}
-      <section id="creadores" className="bg-crema px-5 pb-12">
-        <div className="container mx-auto">
+      <section id="creadores" className="bg-crema pb-12">
+        <div className="wrap">
           <div className="flex justify-between items-baseline mb-4">
             <h2 className="disp text-tinta text-[24px]">Creadores destacados</h2>
             <Link href={ROUTES.DISCOVER} className="text-xs font-semibold text-rosa hover:text-rosa-hover">
               Ver todos →
             </Link>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
             {FEATURED.map((c) => (
               <div key={c.name} className="bg-white border border-borde rounded-[10px] overflow-hidden">
                 <div className="h-1" style={{ background: c.accent }} />
@@ -187,19 +189,21 @@ export default function ImpulsoLanding() {
       </section>
 
       {/* CTA */}
-      <section className="bg-tinta px-5 py-12 text-center">
-        <h2 className="disp text-crema text-[26px] md:text-[30px] leading-tight mb-2.5">
-          ¿LISTO PARA RECIBIR<br />EL APOYO QUE MERECÉS?
-        </h2>
-        <p className="text-[rgba(251,247,242,0.6)] text-sm mb-5 max-w-md mx-auto">
-          Uníte a los creadores argentinos que ya están usando Impulso.
-        </p>
-        <Link
-          href={ROUTES.REGISTER}
-          className="inline-block bg-rosa hover:bg-rosa-hover text-white rounded-lg px-6 py-3 text-sm font-semibold transition-colors"
-        >
-          Crear mi perfil gratis
-        </Link>
+      <section className="bg-tinta py-12">
+        <div className="wrap text-center">
+          <h2 className="disp text-crema text-[26px] md:text-[30px] leading-tight mb-2.5">
+            ¿LISTO PARA RECIBIR<br />EL APOYO QUE MERECÉS?
+          </h2>
+          <p className="text-[rgba(251,247,242,0.6)] text-sm mb-5 max-w-md mx-auto">
+            Uníte a los creadores argentinos que ya están usando Impulso.
+          </p>
+          <Link
+            href={ROUTES.REGISTER}
+            className="inline-block bg-rosa hover:bg-rosa-hover text-white rounded-lg px-6 py-3 text-sm font-semibold transition-colors"
+          >
+            Crear mi perfil gratis
+          </Link>
+        </div>
       </section>
 
       <Footer />

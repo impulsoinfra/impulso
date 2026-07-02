@@ -90,7 +90,7 @@ export default async function CreatorProfilePage({ params }: Props) {
 
       {/* Profile header — tinta */}
       <section className="bg-tinta">
-        <div className="container mx-auto px-5 pt-9 pb-6">
+        <div className="wrap pt-9 pb-6">
           <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
             <div className="flex items-center gap-3.5">
               {profile.avatar_url ? (
@@ -149,14 +149,14 @@ export default async function CreatorProfilePage({ params }: Props) {
         </div>
 
         {/* Ticket divider */}
-        <div className="px-5 pb-4 text-[rgba(251,247,242,0.2)] text-[10px] tracking-[6px] overflow-hidden whitespace-nowrap select-none">
+        <div className="wrap pb-4 text-[rgba(251,247,242,0.2)] text-[10px] tracking-[6px] overflow-hidden whitespace-nowrap select-none">
           ••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
         </div>
       </section>
 
       {/* Content — crema */}
-      <section className="bg-crema px-5 py-6">
-        <div className="container mx-auto max-w-2xl">
+      <section className="bg-crema py-6">
+        <div className="max-w-2xl mx-auto px-6">
           {/* Featured goal — highlighted card */}
           {goal && (
             <div className="bg-white border-2 border-tinta rounded-xl overflow-hidden mb-6">

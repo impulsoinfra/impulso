@@ -4,7 +4,7 @@ import { ROUTES } from '@/lib/constants'
 export function Footer() {
   return (
     <footer className="bg-tinta border-t border-[rgba(251,247,242,0.1)]">
-      <div className="container mx-auto px-5 py-8">
+      <div className="wrap py-8">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
           <div className="col-span-2 md:col-span-1">
             <p className="disp text-crema text-[15px] mb-1">IMPULSO</p>
