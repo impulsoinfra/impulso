@@ -146,9 +146,9 @@
 }
 
 /* Responsive content container — section backgrounds stay full-bleed, the
-   content inside is capped at 1200px with 24px side padding. */
+   content inside is capped with 24px side padding. */
 .wrap {
-  max-width: 1200px;
+  max-width: 1360px;
   margin-inline: auto;
   padding-inline: 24px;
 }
