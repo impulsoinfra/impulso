@@ -86,3 +86,36 @@ CREATE TRIGGER on_auth_user_created
 -- 2. Asegúrate de que RLS esté habilitado en tu proyecto
 -- 3. Las políticas de seguridad pueden necesitar ajustes según tus necesidades específicas
 -- 4. El storage de avatares es opcional y puede configurarse más tarde
+
+-- ============================================================
+-- 10. Banner de portada del perfil (agregado en rediseño de perfil)
+-- ============================================================
+
+-- Columna para la URL del banner de portada
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS banner_url TEXT;
+
+-- Bucket público para banners
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('banners', 'banners', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Políticas del bucket 'banners': lectura pública, escritura solo del dueño.
+-- Convención de path: {userId}/banner-*.ext  ->  foldername[1] = auth.uid()
+DROP POLICY IF EXISTS "Public read banners" ON storage.objects;
+CREATE POLICY "Public read banners" ON storage.objects
+    FOR SELECT USING (bucket_id = 'banners');
+
+DROP POLICY IF EXISTS "Owner insert banners" ON storage.objects;
+CREATE POLICY "Owner insert banners" ON storage.objects
+    FOR INSERT TO authenticated
+    WITH CHECK (bucket_id = 'banners' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+DROP POLICY IF EXISTS "Owner update banners" ON storage.objects;
+CREATE POLICY "Owner update banners" ON storage.objects
+    FOR UPDATE TO authenticated
+    USING (bucket_id = 'banners' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+DROP POLICY IF EXISTS "Owner delete banners" ON storage.objects;
+CREATE POLICY "Owner delete banners" ON storage.objects
+    FOR DELETE TO authenticated
+    USING (bucket_id = 'banners' AND (storage.foldername(name))[1] = auth.uid()::text);
