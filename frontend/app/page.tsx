@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 import { ROUTES } from '@/lib/constants'
-import { Camera, PenLine, Target } from 'lucide-react'
+import { Camera, Feather, Target } from 'lucide-react'
 
 const LINEUP = [
   { label: 'DJS', color: 'text-tinta' },
@@ -27,7 +27,11 @@ const FEATURED = [
   { name: 'DJ Pablo', meta: 'Música · Buenos Aires', pct: 70, current: 140000, target: 200000, accent: '#1B1A2E', btnBorder: '#1B1A2E', btnText: '#1B1A2E' },
 ]
 
-const WAVE = [40, 80, 55, 100, 65, 45, 75, 30, 60, 90]
+// Hero waveform bars (height %, naranja accent on the tall ones)
+const WAVE = [
+  { h: 40, n: false }, { h: 80, n: false }, { h: 55, n: false },
+  { h: 100, n: true }, { h: 65, n: false }, { h: 45, n: false }, { h: 75, n: true },
+]
 
 export default function ImpulsoLanding() {
   return (
@@ -69,45 +73,75 @@ export default function ImpulsoLanding() {
               </p>
             </div>
 
-            {/* Tilted card collage */}
-            <div className="relative h-[320px] w-full max-w-[360px] mx-auto mt-6 md:mt-0">
-              {/* Camera card */}
-              <div className="absolute top-0 right-1.5 w-[92px] bg-naranja border-2 border-tinta rounded-[10px] p-2.5 rotate-[8deg]">
-                <Camera className="w-[18px] h-[18px] text-tinta" />
-                <p className="text-[10px] font-semibold text-tinta mt-1.5 leading-tight">Fotos de<br />la fecha</p>
-              </div>
-              {/* Feather / text card */}
-              <div className="absolute bottom-1.5 left-0 w-[112px] bg-[rgba(240,53,92,0.12)] border-2 border-tinta rounded-[10px] p-2.5 -rotate-[9deg]">
-                <PenLine className="w-4 h-4 text-rosa" />
-                <p className="text-[10px] text-tinta mt-1.5 leading-tight">"Todo empezó en 2018..."</p>
-              </div>
-              {/* Main goal card */}
-              <div className="absolute top-7 left-6 right-6 bg-crema border-2 border-tinta rounded-xl -rotate-[3deg] overflow-hidden">
-                <div className="h-1.5 bg-naranja" />
-                <div className="p-3.5">
-                  <div className="flex items-center gap-2 mb-2.5">
-                    <div className="w-7 h-7 rounded-full bg-tinta" />
+            {/* Tilted card collage — three creator cards */}
+            <div className="relative h-[330px] w-full max-w-[460px] mx-auto mt-6 md:mt-0">
+              {/* Mati Foto — top right */}
+              <div className="absolute -top-[25px] -right-[25px] w-[150px] bg-white border-2 border-tinta rounded-[10px] rotate-[9deg] overflow-hidden z-[1]">
+                <div className="h-[5px] bg-naranja" />
+                <div className="p-[11px]">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <div className="w-5 h-5 rounded-full bg-naranja shrink-0" />
                     <div>
-                      <p className="text-xs font-semibold text-tinta leading-tight">DJ Pablo</p>
-                      <p className="text-[10px] text-txt2 leading-tight">Música · Buenos Aires</p>
+                      <p className="text-[10.5px] font-semibold text-tinta leading-none">Mati Foto</p>
+                      <p className="text-[8.5px] text-txt2 leading-none mt-0.5">Fotografía</p>
                     </div>
                   </div>
-                  <div className="flex items-end gap-[3px] h-7 mb-3">
-                    {WAVE.map((h, i) => (
+                  <p className="text-[9.5px] text-tinta mb-1.5 flex items-center gap-1">
+                    <Camera className="w-2.5 h-2.5 text-naranja-ink shrink-0" /> Nuevo lente
+                  </p>
+                  <div className="h-1 bg-track rounded-full overflow-hidden">
+                    <div className="h-full bg-naranja" style={{ width: '80%' }} />
+                  </div>
+                </div>
+              </div>
+
+              {/* DJ Pablo — main card */}
+              <div className="absolute top-11 left-[70px] right-[70px] bg-white border-2 border-tinta rounded-xl rotate-[-3deg] overflow-hidden z-[3] box-border">
+                <div className="h-1.5 bg-naranja" />
+                <div className="p-4">
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <div className="w-8 h-8 rounded-full bg-tinta shrink-0" />
+                    <div>
+                      <p className="text-[13px] font-semibold text-tinta leading-tight">DJ Pablo</p>
+                      <p className="text-[11px] text-txt2 leading-tight">Música · Buenos Aires</p>
+                    </div>
+                  </div>
+                  <div className="flex items-end gap-[3px] h-[26px] mb-3">
+                    {WAVE.map((b, i) => (
                       <div
                         key={i}
                         className="w-1 rounded-[2px]"
-                        style={{ height: `${h}%`, background: h >= 90 ? '#FF9D3D' : '#F0355C' }}
+                        style={{ height: `${b.h}%`, background: b.n ? '#FF9D3D' : '#F0355C' }}
                       />
                     ))}
                   </div>
-                  <p className="text-[11px] font-semibold text-tinta mb-1.5 flex items-center gap-1">
-                    <Target className="w-3 h-3 text-naranja" /> Quiero un Pioneer CDJ
+                  <p className="text-[12px] font-semibold text-tinta mb-1.5 flex items-center gap-1">
+                    <Target className="w-3 h-3 text-naranja shrink-0" /> Quiero un Pioneer CDJ
                   </p>
                   <div className="h-[7px] bg-track rounded-full overflow-hidden mb-1.5">
                     <div className="h-full bg-rosa" style={{ width: '70%' }} />
                   </div>
-                  <p className="text-[10px] text-txt2">$140.000 / $200.000 · 87 apoyos</p>
+                  <p className="text-[10.5px] text-txt2">$140.000 / $200.000 · 87 apoyos</p>
+                </div>
+              </div>
+
+              {/* Nacho Ilustra — bottom left */}
+              <div className="absolute top-[212px] -left-1 w-[150px] bg-white border-2 border-tinta rounded-[10px] rotate-[-9deg] overflow-hidden z-[1]">
+                <div className="h-[5px] bg-rosa" />
+                <div className="p-[11px]">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <div className="w-5 h-5 rounded-full bg-rosa shrink-0" />
+                    <div>
+                      <p className="text-[10.5px] font-semibold text-tinta leading-none">Nacho Ilustra</p>
+                      <p className="text-[8.5px] text-txt2 leading-none mt-0.5">Arte · Córdoba</p>
+                    </div>
+                  </div>
+                  <p className="text-[9.5px] text-tinta mb-1.5 flex items-center gap-1">
+                    <Feather className="w-2.5 h-2.5 text-rosa shrink-0" /> Mi primer libro
+                  </p>
+                  <div className="h-1 bg-track rounded-full overflow-hidden">
+                    <div className="h-full bg-rosa" style={{ width: '71%' }} />
+                  </div>
                 </div>
               </div>
             </div>
