@@ -1,292 +1,217 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Search, Filter, Users, Star, Loader2 } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
-import { formatCurrency, formatNumber, getInitials } from '@/lib/utils'
-import { artistsApi, Artist, PaginatedResponse } from '@/lib/api'
+import { getBrowserClient } from '@/lib/supabase-browser'
+import { Search, Target, Loader2, Users } from 'lucide-react'
 
-const PROJECT_SECTORS = [
-  'Tecnología',
-  'Manufactura',
-  'Agtech',
-  'Alimentos',
-  'Servicios',
-  'Impacto social'
+const CATEGORIES = [
+  'Todos', 'DJs', 'Artistas', 'Músicos', 'Fotógrafos', 'Escritores',
+  'Podcasters', 'Streamers', 'Creadores de video', 'Emprendedores', 'Ilustradores',
 ]
 
+const ACCENTS = ['#F0355C', '#FF9D3D', '#1B1A2E']
+const btnTextFor = (accent: string) => (accent === '#FF9D3D' ? '#994f0a' : accent)
+
+interface Creator {
+  id: string
+  name: string
+  username: string
+  creator_type: string | null
+  avatar_url: string | null
+  location: string | null
+  goal: { title: string; target_amount: number; current_amount: number }
+}
+
 export default function DiscoverPage() {
-  const [searchTerm, setSearchTerm] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('all')
-  const [sortBy, setSortBy] = useState('popular')
-  const [currentPage, setCurrentPage] = useState(1)
-  
-  const [artists, setArtists] = useState<Artist[]>([])
-  const [pagination, setPagination] = useState<any>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [creators, setCreators] = useState<Creator[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [category, setCategory] = useState('Todos')
+  const [sortBy, setSortBy] = useState<'progress' | 'raised' | 'name'>('progress')
 
-  // Función para cargar proyectos
-  const fetchProjects = async () => {
-    setLoading(true)
-    setError(null)
-    
-    try {
-      const response = await artistsApi.getArtists({
-        search: searchTerm || undefined,
-        category: selectedCategory === 'all' ? undefined : selectedCategory,
-        sortBy,
-        page: currentPage,
-        limit: 12
-      })
-      
-      setArtists(response.data)
-      setPagination(response.pagination)
-    } catch (err) {
-      setError('Error al cargar proyectos')
-      console.error('Error fetching artists:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Cargar proyectos cuando cambien los filtros
   useEffect(() => {
-    setCurrentPage(1) // Resetear a la primera página
-    fetchProjects()
-  }, [searchTerm, selectedCategory, sortBy])
+    const client = getBrowserClient()
+    if (!client) { setLoading(false); return }
+    let active = true
+    ;(async () => {
+      try {
+        const { data, error } = await client
+          .from('profiles')
+          .select('id, name, username, creator_type, avatar_url, location, goals!inner(title, target_amount, current_amount, is_active)')
+          .eq('role', 'artist')
+          .eq('goals.is_active', true)
+          .not('username', 'is', null)
+        if (error) throw error
+        if (!active) return
+        const mapped: Creator[] = (data ?? [])
+          .map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            username: p.username,
+            creator_type: p.creator_type,
+            avatar_url: p.avatar_url,
+            location: p.location,
+            goal: Array.isArray(p.goals) ? p.goals[0] : p.goals,
+          }))
+          .filter((c) => c.goal)
+        setCreators(mapped)
+      } catch (err) {
+        console.error('[discover]', err)
+      } finally {
+        if (active) setLoading(false)
+      }
+    })()
+    return () => { active = false }
+  }, [])
 
-  // Cargar proyectos cuando cambie la página
-  useEffect(() => {
-    if (currentPage > 1) {
-      fetchProjects()
+  const filtered = useMemo(() => {
+    let list = creators
+    if (category !== 'Todos') list = list.filter((c) => c.creator_type === category)
+    const q = search.trim().toLowerCase()
+    if (q) {
+      list = list.filter((c) =>
+        c.name.toLowerCase().includes(q) ||
+        (c.creator_type ?? '').toLowerCase().includes(q) ||
+        (c.location ?? '').toLowerCase().includes(q) ||
+        c.goal.title.toLowerCase().includes(q)
+      )
     }
-  }, [currentPage])
-
-  // Función para cambiar de página
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
-  // Función para aplicar filtros
-  const handleFilterChange = () => {
-    setCurrentPage(1)
-    fetchProjects()
-  }
+    const pct = (c: Creator) => Number(c.goal.current_amount) / Number(c.goal.target_amount)
+    return [...list].sort((a, b) => {
+      if (sortBy === 'progress') return pct(b) - pct(a)
+      if (sortBy === 'raised') return Number(b.goal.current_amount) - Number(a.goal.current_amount)
+      return a.name.localeCompare(b.name)
+    })
+  }, [creators, category, search, sortBy])
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-crema flex flex-col">
       <Header />
-      
-      <main className="py-8">
-        <div className="container mx-auto px-4">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Descubrí proyectos para invertir</h1>
-            <p className="text-gray-600">Encontrá emprendimientos en crecimiento y ayudalos a alcanzar sus metas</p>
+
+      <main className="wrap py-8 flex-1 w-full">
+        <h1 className="disp text-tinta text-[24px] md:text-[28px] uppercase mb-1.5">
+          Descubrí creadores para apoyar
+        </h1>
+        <p className="text-txt2 text-[13px] mb-5 max-w-2xl">
+          Artistas, fotógrafos, escritores y emprendedores construyendo algo. Encontrá a los tuyos.
+        </p>
+
+        {/* Search + category chips */}
+        <div className="bg-white border border-borde rounded-xl p-3.5 mb-4">
+          <div className="flex items-center gap-2 border border-borde rounded-lg px-3 py-2.5 mb-3 focus-within:border-rosa/60 focus-within:ring-2 focus-within:ring-rosa/15 transition-shadow">
+            <Search className="w-4 h-4 text-muted2 shrink-0" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por nombre, categoría o meta"
+              className="flex-1 text-[13px] text-tinta outline-none bg-transparent placeholder:text-muted2"
+            />
           </div>
-
-          {/* Filtros y búsqueda */}
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {/* Búsqueda */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Buscar proyectos o emprendimientos..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-
-              {/* Categoría */}
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos los sectores" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los sectores</SelectItem>
-                  {PROJECT_SECTORS.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {/* Ordenar por */}
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Ordenar por" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="popular">Mayor interés</SelectItem>
-                  <SelectItem value="earnings">Más recaudación</SelectItem>
-                  <SelectItem value="name">Nombre A-Z</SelectItem>
-                  <SelectItem value="recent">Recientes</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Botón de filtros */}
-              <Button 
-                variant="outline" 
-                className="flex items-center gap-2"
-                onClick={handleFilterChange}
-              >
-                <Filter className="h-4 w-4" />
-                Aplicar filtros
-              </Button>
-            </div>
+          <div className="flex gap-1.5 flex-wrap">
+            {CATEGORIES.map((cat) => {
+              const activeCat = category === cat
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setCategory(cat)}
+                  className={activeCat
+                    ? 'bg-rosa text-white text-[11px] font-semibold px-3 py-1.5 rounded-full'
+                    : 'border border-borde text-txt2 hover:border-rosa/40 text-[11px] px-3 py-1.5 rounded-full transition-colors'}
+                >
+                  {cat}
+                </button>
+              )
+            })}
           </div>
-
-          {/* Estado de carga */}
-          {loading && (
-            <div className="flex justify-center py-12">
-              <div className="flex items-center gap-2">
-                <Loader2 className="h-6 w-6 animate-spin" />
-                <span>Cargando proyectos...</span>
-              </div>
-            </div>
-          )}
-
-          {/* Error */}
-          {error && (
-            <div className="text-center py-12">
-              <div className="text-red-500 mb-4">
-                <Search className="w-12 h-12 mx-auto" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Error al cargar proyectos</h3>
-              <p className="text-gray-600 mb-4">{error}</p>
-              <Button onClick={fetchProjects} variant="outline">
-                Intentar de nuevo
-              </Button>
-            </div>
-          )}
-
-          {/* Resultados */}
-          {!loading && !error && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {artists.map((artist) => (
-                <Card key={artist.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                  <div className="relative">
-                    <div className="aspect-video bg-gradient-to-br from-rose-100 to-purple-100">
-                      {/* Placeholder para imagen de proyecto */}
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Avatar className="w-16 h-16">
-                          <AvatarImage src={artist.avatar} alt={artist.name} />
-                          <AvatarFallback>{getInitials(artist.name)}</AvatarFallback>
-                        </Avatar>
-                      </div>
-                    </div>
-                    {artist.isVerified && (
-                      <Badge className="absolute top-2 right-2 bg-rose-100 text-rose-800">
-                        <Star className="w-3 h-3 mr-1" />
-                        Verificado
-                      </Badge>
-                    )}
-                  </div>
-                  
-                  <CardContent className="p-6">
-                    <div className="flex items-start gap-4 mb-4">
-                      <Avatar className="w-12 h-12">
-                        <AvatarImage src={artist.avatar} alt={artist.name} />
-                        <AvatarFallback>{getInitials(artist.name)}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-grow">
-                        <h3 className="font-semibold text-gray-900 mb-1">{artist.name}</h3>
-                        <Badge variant="outline" className="text-xs">
-                          {artist.category || 'Sector sin definir'}
-                        </Badge>
-                      </div>
-                    </div>
-                    
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                      {artist.bio || 'Este proyecto todavía no agregó una descripción detallada.'}
-                    </p>
-                    
-                    <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
-                      <div className="flex items-center gap-1">
-                        <Users className="w-4 h-4" />
-                        {formatNumber(artist.totalSupporters)} inversores
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="font-medium text-green-600">
-                          {formatCurrency(artist.totalEarnings)}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <Link href={`/artist/${artist.id}`}>
-                      <Button className="w-full bg-rose-600 hover:bg-rose-700">
-                        Ver proyecto
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-
-          {/* Paginación */}
-          {!loading && !error && pagination && pagination.totalPages > 1 && (
-            <div className="flex justify-center mt-8">
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  disabled={!pagination.hasPrevPage}
-                  onClick={() => handlePageChange(pagination.currentPage - 1)}
-                >
-                  Anterior
-                </Button>
-                
-                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
-                  <Button
-                    key={page}
-                    variant={page === pagination.currentPage ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handlePageChange(page)}
-                  >
-                    {page}
-                  </Button>
-                ))}
-                
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  disabled={!pagination.hasNextPage}
-                  onClick={() => handlePageChange(pagination.currentPage + 1)}
-                >
-                  Siguiente
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Sin resultados */}
-          {!loading && !error && artists.length === 0 && (
-            <div className="text-center py-12">
-              <div className="text-gray-400 mb-4">
-                <Search className="w-12 h-12 mx-auto" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No se encontraron proyectos</h3>
-              <p className="text-gray-600">Intentá ajustar los filtros de búsqueda</p>
-            </div>
-          )}
         </div>
+
+        {/* Result count + sort */}
+        <div className="flex justify-between items-center mb-3.5 gap-3">
+          <span className="text-[12px] text-txt2">
+            {loading ? 'Cargando…' : `${filtered.length} ${filtered.length === 1 ? 'creador encontrado' : 'creadores encontrados'}`}
+          </span>
+          <div className="relative">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+              className="appearance-none border border-borde rounded-lg pl-3 pr-8 py-2 text-[12px] text-tinta bg-white outline-none focus:border-rosa/60 cursor-pointer"
+            >
+              <option value="progress">Más cerca de la meta</option>
+              <option value="raised">Más recaudado</option>
+              <option value="name">Nombre A-Z</option>
+            </select>
+            <svg className="w-3.5 h-3.5 text-txt2 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6" /></svg>
+          </div>
+        </div>
+
+        {/* Grid */}
+        {loading ? (
+          <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-rosa/60" /></div>
+        ) : filtered.length === 0 ? (
+          <div className="bg-white border border-dashed border-borde rounded-xl py-16 text-center">
+            <Users className="w-10 h-10 text-muted2 mx-auto mb-3" />
+            <p className="text-txt2 font-medium text-sm">No encontramos creadores</p>
+            <p className="text-muted2 text-xs mt-1">
+              {creators.length === 0 ? 'Todavía no hay creadores con metas activas.' : 'Probá con otra búsqueda o categoría.'}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+            {filtered.map((c, i) => {
+              const accent = ACCENTS[i % ACCENTS.length]
+              const pct = Math.min(Math.round((Number(c.goal.current_amount) / Number(c.goal.target_amount)) * 100), 100)
+              const initials = (c.name || c.username).split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
+              return (
+                <Link
+                  key={c.id}
+                  href={`/${c.username}`}
+                  className="bg-white border border-borde rounded-[10px] overflow-hidden block hover:shadow-md transition-shadow"
+                >
+                  <div className="h-1" style={{ background: accent }} />
+                  <div className="p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      {c.avatar_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={c.avatar_url} alt="" className="w-[26px] h-[26px] rounded-full object-cover shrink-0" />
+                      ) : (
+                        <div className="w-[26px] h-[26px] rounded-full flex items-center justify-center text-white text-[9px] font-bold shrink-0" style={{ background: accent }}>
+                          {initials}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-[12.5px] font-semibold text-tinta truncate">{c.name}</p>
+                        <p className="text-[10px] text-txt2 truncate">
+                          {[c.creator_type, c.location].filter(Boolean).join(' · ') || 'Creador'}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-tinta mb-1.5 truncate flex items-center gap-1">
+                      <Target className="w-2.5 h-2.5 text-naranja shrink-0" /> {c.goal.title}
+                    </p>
+                    <div className="h-[5px] bg-track rounded-full overflow-hidden mb-1.5">
+                      <div className="h-full" style={{ width: `${pct}%`, background: accent }} />
+                    </div>
+                    <p className="text-[9.5px] text-txt2 mb-2.5">
+                      ${Number(c.goal.current_amount).toLocaleString('es-AR')} / ${Number(c.goal.target_amount).toLocaleString('es-AR')}
+                    </p>
+                    <span
+                      className="block text-center w-full rounded-md py-1.5 text-[11px] font-semibold border transition-colors hover:bg-black/[0.03]"
+                      style={{ borderColor: accent, color: btnTextFor(accent) }}
+                    >
+                      Apoyar
+                    </span>
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+        )}
       </main>
-      
+
       <Footer />
     </div>
   )
-} 
+}
