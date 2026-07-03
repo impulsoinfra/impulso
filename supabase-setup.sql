@@ -119,3 +119,33 @@ DROP POLICY IF EXISTS "Owner delete banners" ON storage.objects;
 CREATE POLICY "Owner delete banners" ON storage.objects
     FOR DELETE TO authenticated
     USING (bucket_id = 'banners' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+-- ============================================================
+-- 11. Ubicación + avatar (agregado en refactor del dashboard)
+-- ============================================================
+
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS location TEXT;
+
+-- Bucket público para avatares
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('avatars', 'avatars', true)
+ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "Public read avatars" ON storage.objects;
+CREATE POLICY "Public read avatars" ON storage.objects
+    FOR SELECT USING (bucket_id = 'avatars');
+
+DROP POLICY IF EXISTS "Owner insert avatars" ON storage.objects;
+CREATE POLICY "Owner insert avatars" ON storage.objects
+    FOR INSERT TO authenticated
+    WITH CHECK (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+DROP POLICY IF EXISTS "Owner update avatars" ON storage.objects;
+CREATE POLICY "Owner update avatars" ON storage.objects
+    FOR UPDATE TO authenticated
+    USING (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+DROP POLICY IF EXISTS "Owner delete avatars" ON storage.objects;
+CREATE POLICY "Owner delete avatars" ON storage.objects
+    FOR DELETE TO authenticated
+    USING (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);

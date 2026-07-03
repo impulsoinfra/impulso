@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Menu, X, LogOut } from 'lucide-react'
+import { Menu, X, LogOut, Eye } from 'lucide-react'
 import { ROUTES } from '@/lib/constants'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -25,6 +25,8 @@ export function Header() {
   const currentUser = isClient && authUser && profile
     ? { id: authUser.id, name: profile.name, role: profile.role }
     : null
+  const username = (profile as { username?: string } | null)?.username
+  const onDashboard = pathname === ROUTES.DASHBOARD
 
   const isActive = (path: string) => pathname === path
 
@@ -72,12 +74,22 @@ export function Header() {
                 >
                   Hola, {currentUser.name.split(' ')[0]}
                 </Link>
-                <Link
-                  href={ROUTES.DASHBOARD}
-                  className="bg-rosa hover:bg-rosa-hover text-white rounded-lg px-4 py-2 text-[13px] font-semibold transition-colors"
-                >
-                  Mi panel
-                </Link>
+                {onDashboard && username ? (
+                  <Link
+                    href={`/${username}`}
+                    target="_blank"
+                    className="border border-[rgba(251,247,242,0.3)] text-crema hover:bg-[rgba(251,247,242,0.08)] rounded-lg px-3.5 py-2 text-[13px] font-semibold inline-flex items-center gap-1.5 transition-colors"
+                  >
+                    <Eye className="w-3.5 h-3.5" /> Ver perfil
+                  </Link>
+                ) : (
+                  <Link
+                    href={ROUTES.DASHBOARD}
+                    className="bg-rosa hover:bg-rosa-hover text-white rounded-lg px-4 py-2 text-[13px] font-semibold transition-colors"
+                  >
+                    Mi panel
+                  </Link>
+                )}
                 <button
                   onClick={() => signOut()}
                   aria-label="Cerrar sesión"
