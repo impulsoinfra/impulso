@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/use-auth'
 import { ProtectedRoute } from '@/components/auth/protected-route'
 import { Header } from '@/components/layout/header'
@@ -68,6 +69,13 @@ export default function DashboardPage() {
 
 function DashboardContent() {
   const { user, profile, refreshProfile, getClient } = useAuth()
+  const router = useRouter()
+
+  // Creators without a username haven't finished onboarding — send them there.
+  const needsOnboarding = !!profile && (profile as any).role === 'artist' && !(profile as any).username
+  useEffect(() => {
+    if (needsOnboarding) router.replace('/onboarding')
+  }, [needsOnboarding, router])
 
   const [posts, setPosts] = useState<Post[]>([])
   const [goal, setGoal] = useState<Goal | null>(null)
@@ -309,7 +317,7 @@ function DashboardContent() {
     }
   }
 
-  if (!profile) {
+  if (!profile || needsOnboarding) {
     return (
       <div className="min-h-screen bg-crema flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-rosa" />
