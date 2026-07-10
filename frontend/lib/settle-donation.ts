@@ -1,5 +1,6 @@
 import { getAdminClient } from '@/lib/supabase-admin'
 import { getPayment } from '@/lib/mercadopago'
+import { sendDonationNotification } from '@/lib/email'
 
 export type SettleResult = 'approved' | 'rejected' | 'pending' | 'noop'
 
@@ -34,8 +35,13 @@ export async function settleDonation(donationId: string, paymentId: string): Pro
       .eq('status', 'pending')
       .select('id')
 
-    if (flipped && flipped.length > 0 && donation.goal_id) {
-      await admin.rpc('increment_goal', { p_goal_id: donation.goal_id, p_amount: Number(donation.amount) })
+    // Only the caller that won the flip runs the side effects (goal + email),
+    // so the goal is bumped and the creator is emailed exactly once.
+    if (flipped && flipped.length > 0) {
+      if (donation.goal_id) {
+        await admin.rpc('increment_goal', { p_goal_id: donation.goal_id, p_amount: Number(donation.amount) })
+      }
+      await notifyCreator(admin, donation).catch((e) => console.error('[donation email]', e))
     }
     return 'approved'
   }
@@ -50,4 +56,40 @@ export async function settleDonation(donationId: string, paymentId: string): Pro
   }
 
   return 'pending'
+}
+
+// Best-effort creator notification for an approved donation.
+async function notifyCreator(admin: ReturnType<typeof getAdminClient>, donation: any): Promise<void> {
+  const { data: creator } = await admin
+    .from('profiles').select('name, email').eq('id', donation.creator_id).maybeSingle()
+  if (!creator?.email) return
+
+  let supporterName: string | null = null
+  if (donation.supporter_id) {
+    const { data: sup } = await admin.from('profiles').select('name').eq('id', donation.supporter_id).maybeSingle()
+    supporterName = sup?.name ?? null
+  }
+
+  let goalTitle: string | null = null
+  let goalCurrent: number | null = null
+  let goalTarget: number | null = null
+  if (donation.goal_id) {
+    const { data: g } = await admin.from('goals').select('title, current_amount, target_amount').eq('id', donation.goal_id).maybeSingle()
+    if (g) {
+      goalTitle = g.title
+      goalCurrent = Number(g.current_amount) // already incremented above
+      goalTarget = Number(g.target_amount)
+    }
+  }
+
+  await sendDonationNotification({
+    to: creator.email,
+    creatorName: creator.name,
+    amount: Number(donation.amount),
+    supporterName,
+    message: donation.message,
+    goalTitle,
+    goalCurrent,
+    goalTarget,
+  })
 }
