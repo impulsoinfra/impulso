@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { ROUTES } from '@/lib/constants'
+import { ImpulsoSymbol } from '@/components/brand/impulso-symbol'
 
 export function Footer() {
   return (
@@ -7,7 +8,10 @@ export function Footer() {
       <div className="wrap py-8">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
           <div className="col-span-2 md:col-span-1">
-            <p className="disp text-crema text-[15px] mb-1">IMPULSO</p>
+            <div className="flex items-center gap-2 mb-1">
+              <ImpulsoSymbol className="w-5 h-5 text-crema" />
+              <p className="disp text-crema text-[15px]">IMPULSO</p>
+            </div>
             <p className="text-[rgba(251,247,242,0.5)] text-xs leading-relaxed">
               El impulso que necesitás.
             </p>

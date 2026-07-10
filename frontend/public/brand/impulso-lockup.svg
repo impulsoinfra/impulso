@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 100" width="300" height="100">
+  <rect x="8" y="34" width="14" height="52" rx="7" fill="#1B1A2E" opacity="0.35"/>
+  <rect x="26" y="20" width="14" height="66" rx="7" fill="#1B1A2E" opacity="0.55"/>
+  <rect x="44" y="4" width="14" height="82" rx="7" fill="#1B1A2E" opacity="0.8"/>
+  <rect x="62" y="10" width="14" height="76" rx="7" fill="#F0355C"/>
+  <text x="92" y="70" font-family="Anton, sans-serif" font-size="54" fill="#1B1A2E">IMPULSO</text>
+</svg>

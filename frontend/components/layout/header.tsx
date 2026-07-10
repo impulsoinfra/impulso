@@ -7,8 +7,7 @@ import { ROUTES } from '@/lib/constants'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/use-auth'
-
-const CREMA = '#FBF7F2'
+import { ImpulsoSymbol } from '@/components/brand/impulso-symbol'
 
 export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -42,9 +41,7 @@ export function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href={ROUTES.HOME} className="flex items-center gap-2">
-            <div className="disp w-[26px] h-[26px] rounded-[7px] bg-rosa text-white flex items-center justify-center text-[15px] leading-none">
-              i
-            </div>
+            <ImpulsoSymbol className="w-[26px] h-[26px] text-crema" />
             <span className="disp text-crema text-[17px] tracking-wide">IMPULSO</span>
           </Link>
 
