@@ -414,7 +414,7 @@ function DashboardContent() {
             )}
 
             {/* Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-2.5">
               <StatCard
                 icon={<FileText className="w-3.5 h-3.5 text-tinta" />}
                 iconBg="rgba(27,26,46,0.08)"
@@ -462,6 +462,19 @@ function DashboardContent() {
                 )}
               </div>
             </div>
+
+            {/* Net earnings note — the goal bar shows gross; clarify take-home */}
+            {goal && Number(goal.current_amount) > 0 ? (
+              <p className="text-[11px] text-muted2 mb-6">
+                De <span className="font-semibold text-txt2">${Number(goal.current_amount).toLocaleString('es-AR')}</span> recaudados,
+                Impulso retiene <span className="font-semibold text-txt2">${Math.round(Number(goal.current_amount) * 0.1).toLocaleString('es-AR')}</span> (10%).
+                Recibís <span className="font-semibold text-txt2">${Math.round(Number(goal.current_amount) * 0.9).toLocaleString('es-AR')}</span> menos la comisión de MercadoPago.
+              </p>
+            ) : (
+              <p className="text-[11px] text-muted2 mb-6">
+                Los montos de la meta son en bruto: de cada apoyo recibís el <span className="font-semibold text-txt2">90%</span> (Impulso retiene 10%) menos la comisión de MercadoPago.
+              </p>
+            )}
 
             <Tabs defaultValue="posts">
               <TabsList className="w-full justify-start gap-1 bg-transparent border-b border-borde rounded-none p-0 h-auto mb-6">
