@@ -18,7 +18,7 @@ import {
 import {
   FileText, Target, User, Plus, Trash2, ExternalLink,
   Loader2, CheckCircle, AlertCircle, Camera, Pencil,
-  DollarSign, Users,
+  DollarSign, Wallet,
 } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -384,6 +384,35 @@ function DashboardContent() {
 
         {isCreator && (
           <>
+            {/* Connection status message (from the ?mp= OAuth return, or errors) */}
+            {mpMsg && (
+              <div className="mb-4"><Feedback ok={mpMsg.ok} text={mpMsg.text} /></div>
+            )}
+
+            {/* Prominent "connect MercadoPago" banner while not connected */}
+            {!p.mp_connected && (
+              <div className="bg-tinta rounded-xl p-4 mb-5 flex items-center justify-between gap-4 flex-wrap relative overflow-hidden">
+                <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full" style={{ background: 'rgba(240,53,92,0.18)' }} />
+                <div className="relative">
+                  <p className="text-crema font-semibold text-sm mb-0.5 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-naranja shrink-0" />
+                    Conectá MercadoPago para recibir apoyos
+                  </p>
+                  <p className="text-[rgba(251,247,242,0.6)] text-[12px] max-w-md">
+                    Sin esto, tus seguidores no pueden apoyarte. Toma menos de un minuto.
+                  </p>
+                </div>
+                <button
+                  onClick={handleConnectMp}
+                  disabled={connectingMp}
+                  className="relative bg-rosa hover:bg-rosa-hover text-white rounded-lg px-5 py-2.5 text-[13px] font-semibold inline-flex items-center gap-2 shrink-0 disabled:opacity-60 transition-colors"
+                >
+                  {connectingMp && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Conectar MercadoPago
+                </button>
+              </div>
+            )}
+
             {/* Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
               <StatCard
@@ -407,14 +436,31 @@ function DashboardContent() {
                 value={goal ? `$${Number(goal.current_amount).toLocaleString('es-AR')}` : '$0'}
                 sub={goal ? `de $${Number(goal.target_amount).toLocaleString('es-AR')}` : 'Sin meta activa'}
               />
-              <StatCard
-                icon={<Users className="w-3.5 h-3.5 text-muted2" />}
-                iconBg="rgba(27,26,46,0.08)"
-                label="Seguidores"
-                value="Próximamente"
-                valueMuted
-                sub="Función en desarrollo"
-              />
+              {/* Cobros — MercadoPago connection status */}
+              <div className="bg-white border border-borde rounded-[10px] p-3.5 flex flex-col">
+                <div className="flex items-center gap-2 mb-2">
+                  <div
+                    className="w-[22px] h-[22px] rounded-md flex items-center justify-center shrink-0"
+                    style={{ background: p.mp_connected ? 'rgba(47,174,102,0.12)' : 'rgba(240,53,92,0.10)' }}
+                  >
+                    <Wallet className="w-3.5 h-3.5" style={{ color: p.mp_connected ? '#2FAE66' : '#F0355C' }} />
+                  </div>
+                  <span className="text-[10.5px] text-txt2">Cobros</span>
+                </div>
+                {p.mp_connected ? (
+                  <>
+                    <p className="text-[15px] font-semibold text-exito leading-none mb-1">Conectado</p>
+                    <p className="text-[10.5px] text-muted2">MercadoPago listo</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-[15px] font-semibold text-rosa leading-none mb-1">Sin conectar</p>
+                    <button onClick={handleConnectMp} className="text-[10.5px] text-rosa font-semibold hover:underline text-left">
+                      Conectar MercadoPago →
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
 
             <Tabs defaultValue="posts">
@@ -632,7 +678,6 @@ function DashboardContent() {
                         </button>
                       )}
                     </div>
-                    {mpMsg && <div className="mt-3"><Feedback ok={mpMsg.ok} text={mpMsg.text} /></div>}
                   </div>
 
                   <div className="bg-white border border-borde rounded-xl overflow-hidden">
