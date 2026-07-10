@@ -149,3 +149,58 @@ DROP POLICY IF EXISTS "Owner delete avatars" ON storage.objects;
 CREATE POLICY "Owner delete avatars" ON storage.objects
     FOR DELETE TO authenticated
     USING (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+-- ============================================================
+-- 12. MercadoPago Split de Pagos 1:1 (integración de cobros)
+-- ============================================================
+
+-- Credenciales OAuth por creador. SECRETAS: RLS habilitado sin políticas,
+-- solo la service_role key (backend) puede leer/escribir estos tokens.
+CREATE TABLE IF NOT EXISTS public.mp_accounts (
+  creator_id uuid PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
+  mp_user_id text NOT NULL,
+  access_token text NOT NULL,
+  refresh_token text,
+  public_key text,
+  expires_at timestamptz,
+  connected_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+ALTER TABLE public.mp_accounts ENABLE ROW LEVEL SECURITY;
+
+-- Flag público (no secreto) para que la UI sepa que el creador puede cobrar
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS mp_connected boolean NOT NULL DEFAULT false;
+
+-- Donaciones
+CREATE TABLE IF NOT EXISTS public.donations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  creator_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  supporter_id uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
+  post_id uuid REFERENCES public.posts(id) ON DELETE SET NULL,
+  goal_id uuid REFERENCES public.goals(id) ON DELETE SET NULL,
+  amount numeric(12,2) NOT NULL,
+  marketplace_fee numeric(12,2) NOT NULL DEFAULT 0,
+  currency text NOT NULL DEFAULT 'ARS',
+  message text,
+  status text NOT NULL DEFAULT 'pending', -- pending | approved | rejected | refunded
+  mp_preference_id text,
+  mp_payment_id text,
+  payer_email text,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+ALTER TABLE public.donations ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Creator reads own donations" ON public.donations;
+CREATE POLICY "Creator reads own donations" ON public.donations FOR SELECT USING (auth.uid() = creator_id);
+DROP POLICY IF EXISTS "Supporter reads own donations" ON public.donations;
+CREATE POLICY "Supporter reads own donations" ON public.donations FOR SELECT USING (auth.uid() = supporter_id);
+-- Sin políticas de insert/update/delete: las donaciones las escribe solo el backend (service_role).
+
+CREATE INDEX IF NOT EXISTS donations_creator_idx ON public.donations(creator_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS donations_pref_idx ON public.donations(mp_preference_id);
+
+-- Suma atómica a la meta (llamada desde el webhook al aprobarse un pago)
+CREATE OR REPLACE FUNCTION public.increment_goal(p_goal_id uuid, p_amount numeric)
+RETURNS void LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
+  UPDATE public.goals SET current_amount = current_amount + p_amount WHERE id = p_goal_id;
+$$;

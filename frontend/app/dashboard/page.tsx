@@ -107,6 +107,10 @@ function DashboardContent() {
   const [savingProfile, setSavingProfile] = useState(false)
   const [profileMsg, setProfileMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
+  // MercadoPago connection
+  const [connectingMp, setConnectingMp] = useState(false)
+  const [mpMsg, setMpMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
   // Cover + avatar
   const [bannerUrl, setBannerUrl] = useState<string | null>(null)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
@@ -137,6 +141,19 @@ function DashboardContent() {
   }, [user?.id, getClient])
 
   useEffect(() => { loadData() }, [loadData])
+
+  // Handle the return from the MercadoPago OAuth flow (?mp=connected|error).
+  useEffect(() => {
+    const mp = new URLSearchParams(window.location.search).get('mp')
+    if (mp === 'connected') {
+      setMpMsg({ ok: true, text: '¡MercadoPago conectado! Ya podés recibir apoyos.' })
+      refreshProfile()
+      window.history.replaceState({}, '', '/dashboard')
+    } else if (mp === 'error') {
+      setMpMsg({ ok: false, text: 'No se pudo conectar MercadoPago. Intentá de nuevo.' })
+      window.history.replaceState({}, '', '/dashboard')
+    }
+  }, [refreshProfile])
 
   // Pre-fill profile form when profile loads
   useEffect(() => {
@@ -314,6 +331,27 @@ function DashboardContent() {
       setProfileMsg({ ok: false, text: 'No se pudo subir la imagen. Intentá de nuevo.' })
     } finally {
       setUploading(false)
+    }
+  }
+
+  const handleConnectMp = async () => {
+    const client = getClient()
+    if (!client) return
+    setConnectingMp(true)
+    setMpMsg(null)
+    try {
+      const { data } = await client.auth.getSession()
+      const token = data.session?.access_token
+      const res = await fetch('/api/mp/oauth/start', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      if (!res.ok) throw new Error('start failed')
+      const { url } = await res.json()
+      window.location.href = url // → MercadoPago authorization
+    } catch (err) {
+      console.error('[connect mp]', err)
+      setMpMsg({ ok: false, text: 'No se pudo iniciar la conexión con MercadoPago.' })
+      setConnectingMp(false)
     }
   }
 
@@ -572,6 +610,31 @@ function DashboardContent() {
               {/* PROFILE TAB */}
               <TabsContent value="profile">
                 <div className="max-w-2xl">
+                  {/* MercadoPago cobros */}
+                  <div className="bg-white border border-borde rounded-xl p-4 mb-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-tinta text-sm mb-0.5">Cobros con MercadoPago</p>
+                        <p className="text-txt2 text-[12px] max-w-sm">
+                          {p.mp_connected
+                            ? 'Tu cuenta está conectada. Los apoyos van directo a tu MercadoPago (Impulso retiene 10%).'
+                            : 'Conectá tu cuenta para recibir el dinero de tus apoyos directo en MercadoPago.'}
+                        </p>
+                      </div>
+                      {p.mp_connected ? (
+                        <span className="shrink-0 inline-flex items-center gap-1.5 bg-exito/10 text-exito text-[12px] font-semibold px-2.5 py-1.5 rounded-full">
+                          <CheckCircle className="w-3.5 h-3.5" /> Conectado
+                        </span>
+                      ) : (
+                        <button onClick={handleConnectMp} disabled={connectingMp} className={`${primaryBtn} shrink-0 whitespace-nowrap`}>
+                          {connectingMp && <Loader2 className="w-4 h-4 animate-spin" />}
+                          Conectar MercadoPago
+                        </button>
+                      )}
+                    </div>
+                    {mpMsg && <div className="mt-3"><Feedback ok={mpMsg.ok} text={mpMsg.text} /></div>}
+                  </div>
+
                   <div className="bg-white border border-borde rounded-xl overflow-hidden">
                     {/* Cover + avatar */}
                     <div className="relative">

@@ -116,6 +116,7 @@ export default async function CreatorProfilePage({ params }: Props) {
               creatorId={profile.id}
               creatorName={profile.name}
               creatorUsername={username}
+              creatorConnected={profile.mp_connected}
               variant="primary"
             />
           </div>
@@ -186,6 +187,7 @@ export default async function CreatorProfilePage({ params }: Props) {
                         creatorUsername={username}
                         variant="primary"
                         label="Apoyar esta meta"
+                        creatorConnected={profile.mp_connected}
                       />
                     </div>
                   </div>
@@ -248,6 +250,7 @@ export default async function CreatorProfilePage({ params }: Props) {
                             creatorUsername={username}
                             postId={post.id}
                             postTitle={post.title}
+                            creatorConnected={profile.mp_connected}
                           />
                         </div>
                       </div>

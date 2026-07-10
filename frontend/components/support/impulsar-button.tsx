@@ -6,8 +6,9 @@ import {
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { Heart, Loader2, CheckCircle } from 'lucide-react'
+import { Heart, Loader2, AlertCircle } from 'lucide-react'
 import { PRICING } from '@/lib/constants'
+import { useAuth } from '@/hooks/use-auth'
 
 const PRESETS = [500, 1000, 2000]
 
@@ -17,6 +18,8 @@ interface ImpulsarButtonProps {
   creatorUsername: string
   postId?: string
   postTitle?: string | null
+  /** Whether the creator has connected MercadoPago (can receive money) */
+  creatorConnected?: boolean
   /** Visual variants: 'post' = compact ghost button, 'primary' = filled button */
   variant?: 'post' | 'primary'
   label?: string
@@ -28,17 +31,18 @@ export function ImpulsarButton({
   creatorUsername,
   postId,
   postTitle,
+  creatorConnected = true,
   variant = 'post',
   label,
 }: ImpulsarButtonProps) {
   const firstName = creatorName?.split(' ')[0] || creatorUsername
+  const { getClient } = useAuth()
 
   const [open, setOpen] = useState(false)
   const [amount, setAmount] = useState<number>(1000)
   const [customAmount, setCustomAmount] = useState('')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
-  const [done, setDone] = useState(false)
   const [error, setError] = useState('')
 
   const selectedAmount = customAmount
@@ -50,7 +54,6 @@ export function ImpulsarButton({
     setCustomAmount('')
     setMessage('')
     setLoading(false)
-    setDone(false)
     setError('')
   }
 
@@ -71,14 +74,34 @@ export function ImpulsarButton({
     }
     setLoading(true)
     try {
-      // TODO(mercadopago): create a Checkout Pro preference on the backend and
-      // redirect to init_point. Payload ready to send:
-      //   { creatorId, postId, amount: selectedAmount, message }
-      // The webhook then records the donation and adds it to the active goal.
-      await new Promise((r) => setTimeout(r, 700)) // simulate request
-      setDone(true)
+      // Attach the supporter's session token if logged in (optional attribution).
+      let token: string | undefined
+      const client = getClient()
+      if (client) {
+        const { data } = await client.auth.getSession()
+        token = data.session?.access_token
+      }
+      const res = await fetch('/api/mp/preference', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ creatorId, postId, amount: selectedAmount, message }),
+      })
+      if (res.status === 409) {
+        setError('Este creador todavía no configuró sus cobros.')
+        return
+      }
+      if (!res.ok) {
+        setError('No se pudo iniciar el pago. Intentá de nuevo.')
+        return
+      }
+      const { init_point } = await res.json()
+      if (!init_point) {
+        setError('No se pudo iniciar el pago. Intentá de nuevo.')
+        return
+      }
+      window.location.href = init_point // → MercadoPago Checkout Pro
     } catch {
-      setError('No se pudo iniciar el impulso. Intentá de nuevo.')
+      setError('No se pudo iniciar el pago. Intentá de nuevo.')
     } finally {
       setLoading(false)
     }
@@ -106,24 +129,20 @@ export function ImpulsarButton({
 
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-md bg-white">
-          {done ? (
+          {!creatorConnected ? (
             <div className="py-6 text-center">
-              <div className="w-14 h-14 rounded-full bg-exito/10 flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-7 h-7 text-exito" />
+              <div className="w-14 h-14 rounded-full bg-naranja/15 flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="w-7 h-7 text-naranja-ink" />
               </div>
-              <h3 className="disp text-tinta text-xl mb-1">¡GRACIAS POR TU IMPULSO!</h3>
+              <h3 className="disp text-tinta text-lg mb-1">TODAVÍA NO PODÉS APOYAR</h3>
               <p className="text-txt2 text-sm">
-                Estás por apoyar a {firstName} con{' '}
-                <span className="font-semibold text-rosa">
-                  ${selectedAmount.toLocaleString('es-AR')}
-                </span>
-                . El pago con MercadoPago se habilita muy pronto — te vamos a avisar.
+                {firstName} todavía no configuró sus cobros con MercadoPago. Volvé pronto para apoyar su trabajo.
               </p>
               <button
                 onClick={() => onOpenChange(false)}
                 className="mt-5 w-full bg-rosa hover:bg-rosa-hover text-white rounded-lg py-3 text-sm font-semibold transition-colors"
               >
-                Listo
+                Entendido
               </button>
             </div>
           ) : (
