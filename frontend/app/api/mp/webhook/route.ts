@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { getAdminClient } from '@/lib/supabase-admin'
-import { getPayment, verifyWebhookSignature } from '@/lib/mercadopago'
+import { verifyWebhookSignature } from '@/lib/mercadopago'
+import { settleDonation } from '@/lib/settle-donation'
 
 export const runtime = 'nodejs'
 
@@ -35,38 +35,7 @@ export async function POST(req: Request) {
   if (!donationId || !paymentId) return NextResponse.json({ ok: true })
 
   try {
-    const admin = getAdminClient()
-    const { data: donation } = await admin.from('donations').select('*').eq('id', donationId).maybeSingle()
-    if (!donation) return NextResponse.json({ ok: true })
-    if (donation.status === 'approved') return NextResponse.json({ ok: true }) // idempotent
-
-    const { data: mp } = await admin.from('mp_accounts').select('access_token').eq('creator_id', donation.creator_id).maybeSingle()
-    if (!mp?.access_token) return NextResponse.json({ ok: true })
-
-    const payment = await getPayment(mp.access_token, paymentId)
-    if (payment.external_reference && payment.external_reference !== donationId) {
-      return NextResponse.json({ ok: true }) // mismatch — ignore
-    }
-
-    if (payment.status === 'approved') {
-      await admin.from('donations').update({
-        status: 'approved',
-        mp_payment_id: String(payment.id),
-        payer_email: payment.payer?.email ?? null,
-        updated_at: new Date().toISOString(),
-      }).eq('id', donationId)
-
-      if (donation.goal_id) {
-        await admin.rpc('increment_goal', { p_goal_id: donation.goal_id, p_amount: Number(donation.amount) })
-      }
-    } else if (['rejected', 'cancelled'].includes(payment.status)) {
-      await admin.from('donations').update({
-        status: 'rejected',
-        mp_payment_id: String(payment.id),
-        updated_at: new Date().toISOString(),
-      }).eq('id', donationId)
-    }
-
+    await settleDonation(donationId, paymentId)
     return NextResponse.json({ ok: true })
   } catch (e) {
     console.error('[mp webhook]', e)

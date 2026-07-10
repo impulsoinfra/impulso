@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense } from 'react'
+import { Suspense, useEffect } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Header } from '@/components/layout/header'
@@ -11,6 +11,20 @@ import { ROUTES } from '@/lib/constants'
 function GraciasContent() {
   const params = useSearchParams()
   const status = params.get('status') || 'success'
+
+  // Settle the donation from the MP payment on return (works even if the
+  // webhook is delayed or doesn't fire in test mode). Idempotent server-side.
+  useEffect(() => {
+    const donationId = params.get('d') || params.get('external_reference')
+    const paymentId = params.get('payment_id') || params.get('collection_id')
+    if (donationId && paymentId) {
+      fetch('/api/mp/confirm', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ donationId, paymentId }),
+      }).catch(() => {})
+    }
+  }, [params])
 
   const config = {
     success: {
