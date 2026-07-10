@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getAdminClient } from '@/lib/supabase-admin'
-import { getPayment } from '@/lib/mercadopago'
+import { getPayment, verifyWebhookSignature } from '@/lib/mercadopago'
 
 export const runtime = 'nodejs'
 
@@ -9,7 +9,8 @@ export const runtime = 'nodejs'
 export async function POST(req: Request) {
   const url = new URL(req.url)
   const donationId = url.searchParams.get('donation')
-  let paymentId = url.searchParams.get('data.id') || url.searchParams.get('id')
+  const queryDataId = url.searchParams.get('data.id') || url.searchParams.get('id')
+  let paymentId = queryDataId
   let topic = url.searchParams.get('type') || url.searchParams.get('topic')
 
   try {
@@ -19,6 +20,15 @@ export async function POST(req: Request) {
   } catch {
     // no/invalid JSON body — rely on query params
   }
+
+  // Verify the notification really comes from MercadoPago (no-op if the secret
+  // isn't configured yet).
+  const validSig = verifyWebhookSignature({
+    xSignature: req.headers.get('x-signature'),
+    xRequestId: req.headers.get('x-request-id'),
+    dataId: queryDataId || paymentId,
+  })
+  if (!validSig) return NextResponse.json({ error: 'invalid_signature' }, { status: 401 })
 
   // Only handle payment events; ack everything else so MP stops retrying.
   if (topic && topic !== 'payment') return NextResponse.json({ ok: true })

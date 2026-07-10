@@ -153,3 +153,38 @@ export async function getPayment(accessToken: string, paymentId: string): Promis
   if (!res.ok) throw new Error(`MP get payment failed: ${res.status} ${await res.text()}`)
   return res.json()
 }
+
+// ---- Webhook signature validation (HMAC-SHA256 of the MP manifest) ----------
+// Validates the `x-signature` header MP sends. Disabled (returns true) when
+// MP_WEBHOOK_SECRET is not set, so it can be turned on once configured in the
+// MP panel (Tus integraciones → Webhooks).
+export function verifyWebhookSignature(opts: {
+  xSignature: string | null
+  xRequestId: string | null
+  dataId: string | null
+}): boolean {
+  const secret = process.env.MP_WEBHOOK_SECRET
+  if (!secret) return true
+  if (!opts.xSignature || !opts.dataId) return false
+
+  let ts = ''
+  let v1 = ''
+  for (const part of opts.xSignature.split(',')) {
+    const [k, val] = part.split('=').map((s) => s?.trim())
+    if (k === 'ts') ts = val
+    else if (k === 'v1') v1 = val
+  }
+  if (!ts || !v1) return false
+
+  const id = opts.dataId.toLowerCase()
+  let manifest = `id:${id};`
+  if (opts.xRequestId) manifest += `request-id:${opts.xRequestId};`
+  manifest += `ts:${ts};`
+
+  const computed = crypto.createHmac('sha256', secret).update(manifest).digest('hex')
+  try {
+    return crypto.timingSafeEqual(Buffer.from(computed), Buffer.from(v1))
+  } catch {
+    return false
+  }
+}
