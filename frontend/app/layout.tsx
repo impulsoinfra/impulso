@@ -18,7 +18,10 @@ const anton = Anton({
   display: 'swap',
 })
 
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://tuimpulso.ar'
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: 'Impulso - Apoyá a quienes te inspiran',
   description: 'Plataforma para que artistas independientes reciban apoyo económico de su comunidad a cambio de contenido exclusivo',
   keywords: 'artistas, apoyo, comunidad, contenido exclusivo, crowdfunding',

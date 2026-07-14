@@ -41,9 +41,25 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!profile) return { title: 'Creador no encontrado — Impulso' }
 
+  const title = `${profile.name} (@${username}) — Impulso`
+  const description = profile.bio || `Apoyá a ${profile.name} en Impulso`
+
+  // og:image / twitter:image are injected automatically by opengraph-image.tsx
   return {
-    title: `${profile.name} (@${username}) — Impulso`,
-    description: profile.bio || `Apoyá a ${profile.name} en Impulso`,
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'profile',
+      url: `/${username}`,
+      siteName: 'Impulso',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+    },
   }
 }
 

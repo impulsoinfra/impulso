@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { ShareMenu, type ShareOption } from '@/components/share/share-menu'
 
 const CREATOR_TYPES = [
   'DJs', 'Artistas', 'Músicos', 'Fotógrafos', 'Escritores',
@@ -366,7 +367,20 @@ function DashboardContent() {
   const isCreator = profile.role === 'artist'
   const goalPercent = goal ? Math.min(Math.round((goal.current_amount / goal.target_amount) * 100), 100) : 0
   const p = profile as any
+  const username: string = p.username ?? ''
   const initials = (profileName || p.name || 'U').split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()
+
+  const metaShareOptions: ShareOption[] = username
+    ? [
+        { key: 'story', label: 'Historia', hint: '1080×1920', url: `/api/share/meta/${username}`, filename: 'impulso-meta-historia.png' },
+        { key: 'feed', label: 'Publicación (feed)', hint: '1080×1350', url: `/api/share/meta/${username}?format=post`, filename: 'impulso-meta-feed.png' },
+      ]
+    : []
+
+  const postShareOptions = (postId: string): ShareOption[] => [
+    { key: 'story', label: 'Historia', hint: '1080×1920', url: `/api/share/post/${postId}`, filename: 'impulso-publicacion-historia.png' },
+    { key: 'square', label: 'Cuadrado (feed)', hint: '1080×1080', url: `/api/share/post/${postId}?format=square`, filename: 'impulso-publicacion-cuadrado.png' },
+  ]
   const lastPostLabel = posts.length
     ? `Última: ${formatDistanceToNow(new Date(posts[0].created_at), { locale: es, addSuffix: true })}`
     : 'Sin publicaciones aún'
@@ -561,6 +575,8 @@ function DashboardContent() {
                                 </span>
                               </div>
                             </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                            {username && <ShareMenu options={postShareOptions(post.id)} compact />}
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <button
@@ -584,6 +600,7 @@ function DashboardContent() {
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
+                            </div>
                           </div>
                         </div>
                       ))
@@ -616,6 +633,14 @@ function DashboardContent() {
                             ${Number(goal.current_amount).toLocaleString('es-AR')} de ${Number(goal.target_amount).toLocaleString('es-AR')}
                           </span>
                         </div>
+                        {username && (
+                          <div className="mt-4 pt-3 border-t border-borde flex items-center justify-between gap-3">
+                            <p className="text-[11px] text-muted2 leading-tight">
+                              Compartí tu meta en Instagram y sumá apoyos.
+                            </p>
+                            <ShareMenu options={metaShareOptions} triggerLabel="Compartir" />
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
