@@ -59,7 +59,7 @@ export function ProfileBanner({ profileId, bannerUrl: initialBannerUrl }: Profil
   return (
     <div className="relative bg-tinta">
       {/* Banner image, or brand-pattern fallback (never empty gray) */}
-      <div className="h-36 md:h-44 overflow-hidden relative">
+      <div className="h-36 md:h-44 lg:h-72 overflow-hidden relative">
         {bannerUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={bannerUrl} alt="" className="w-full h-full object-cover" />
@@ -75,7 +75,7 @@ export function ProfileBanner({ profileId, bannerUrl: initialBannerUrl }: Profil
       {/* Camera edit control — owner only, aligned to content width */}
       {isOwner && (
         <div className="wrap absolute inset-x-0 top-3 pointer-events-none">
-          <div className="flex justify-end items-center gap-2">
+          <div className="max-w-[960px] mx-auto flex justify-end items-center gap-2">
             {error && (
               <span className="pointer-events-auto text-[11px] text-white bg-red-600/85 rounded px-2 py-1">
                 {error}

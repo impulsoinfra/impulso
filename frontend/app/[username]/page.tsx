@@ -126,63 +126,65 @@ export default async function CreatorProfilePage({ params }: Props) {
 
       {/* Identity block — crema, avatar overlaps the banner above */}
       <section className="bg-crema">
-        <div className="wrap relative">
-          {/* Avatar overlapping the banner's bottom edge */}
-          <div className="absolute left-0 -top-[38px] z-10">
-            {profile.avatar_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={profile.avatar_url}
-                alt={profile.name}
-                className="w-[76px] h-[76px] rounded-full object-cover border-4 border-crema box-border"
-              />
-            ) : (
-              <div className="disp w-[76px] h-[76px] rounded-full bg-rosa text-white flex items-center justify-center text-xl border-4 border-crema box-border">
-                {initials}
-              </div>
-            )}
-          </div>
-
-          {/* Compartir + Apoyar — top-right, opposite the avatar */}
-          <div className="flex justify-end items-center gap-2 pt-4">
-            <ShareMenu options={profileShareOptions} triggerLabel="Compartir" />
-            <ImpulsarButton
-              creatorId={profile.id}
-              creatorName={profile.name}
-              creatorUsername={username}
-              creatorConnected={profile.mp_connected}
-              variant="primary"
-            />
-          </div>
-
-          {/* Name / handle / badge / bio / meta */}
-          <div className="mt-2 pb-3">
-            <h1 className="disp text-tinta text-[22px] md:text-[26px] leading-none mb-1">{profile.name}</h1>
-            <p className="text-txt2 text-[13px] mb-2">@{username}</p>
-            {profile.creator_type && (
-              <span className="inline-block bg-naranja text-tinta text-[10px] font-bold uppercase tracking-wide px-2.5 py-[3px] rounded-full mb-2.5">
-                {profile.creator_type}
-              </span>
-            )}
-            {profile.bio && (
-              <p className="text-txt2 text-sm leading-relaxed max-w-xl mb-2.5">{profile.bio}</p>
-            )}
-            <div className="flex gap-4 flex-wrap">
-              {profile.website && (
-                <a
-                  href={profile.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-muted2 hover:text-tinta text-[11px] flex items-center gap-1 transition-colors"
-                >
-                  <Globe className="w-3 h-3" />
-                  {profile.website.replace(/^https?:\/\//, '')}
-                </a>
+        <div className="wrap">
+          <div className="max-w-[960px] mx-auto relative">
+            {/* Avatar overlapping the banner's bottom edge */}
+            <div className="absolute left-0 -top-[38px] lg:-top-[70px] z-10">
+              {profile.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={profile.avatar_url}
+                  alt={profile.name}
+                  className="w-[76px] h-[76px] lg:w-[140px] lg:h-[140px] rounded-full object-cover border-4 lg:border-[6px] border-crema box-border"
+                />
+              ) : (
+                <div className="disp w-[76px] h-[76px] lg:w-[140px] lg:h-[140px] rounded-full bg-rosa text-white flex items-center justify-center text-xl lg:text-5xl border-4 lg:border-[6px] border-crema box-border">
+                  {initials}
+                </div>
               )}
-              <span className="text-muted2 text-[11px] flex items-center gap-1">
-                <Calendar className="w-3 h-3" />
-                Miembro desde {format(new Date(profile.created_at), 'MMMM yyyy', { locale: es })}
-              </span>
+            </div>
+
+            {/* Compartir + Apoyar — top-right, opposite the avatar */}
+            <div className="flex justify-end items-center gap-2 pt-4">
+              <ShareMenu options={profileShareOptions} triggerLabel="Compartir" />
+              <ImpulsarButton
+                creatorId={profile.id}
+                creatorName={profile.name}
+                creatorUsername={username}
+                creatorConnected={profile.mp_connected}
+                variant="primary"
+              />
+            </div>
+
+            {/* Name / handle / badge / bio / meta */}
+            <div className="mt-2 lg:mt-10 pb-3">
+              <h1 className="disp text-tinta text-[22px] md:text-[26px] lg:text-[32px] leading-none mb-1">{profile.name}</h1>
+              <p className="text-txt2 text-[13px] lg:text-[15px] mb-2">@{username}</p>
+              {profile.creator_type && (
+                <span className="inline-block bg-naranja text-tinta text-[10px] font-bold uppercase tracking-wide px-2.5 py-[3px] rounded-full mb-2.5">
+                  {profile.creator_type}
+                </span>
+              )}
+              {profile.bio && (
+                <p className="text-txt2 text-sm lg:text-[15px] leading-relaxed max-w-xl mb-2.5">{profile.bio}</p>
+              )}
+              <div className="flex gap-4 flex-wrap">
+                {profile.website && (
+                  <a
+                    href={profile.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted2 hover:text-tinta text-[11px] flex items-center gap-1 transition-colors"
+                  >
+                    <Globe className="w-3 h-3" />
+                    {profile.website.replace(/^https?:\/\//, '')}
+                  </a>
+                )}
+                <span className="text-muted2 text-[11px] flex items-center gap-1">
+                  <Calendar className="w-3 h-3" />
+                  Miembro desde {format(new Date(profile.created_at), 'MMMM yyyy', { locale: es })}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -191,7 +193,7 @@ export default async function CreatorProfilePage({ params }: Props) {
       {/* Content — posts (main) + goal/about (sidebar). Mobile order: goal → posts → about. */}
       <section className="bg-crema pb-12">
         <div className="wrap">
-          <div className="grid gap-4 items-start lg:grid-cols-[minmax(0,1fr)_300px] lg:grid-rows-[auto_1fr]">
+          <div className="grid gap-4 items-start max-w-[960px] mx-auto lg:grid-cols-[minmax(0,1fr)_300px] lg:grid-rows-[auto_1fr]">
             {/* Goal — DOM first (mobile top); desktop right column, row 1 */}
             {goal && (
               <div className="lg:col-start-2 lg:row-start-1">
