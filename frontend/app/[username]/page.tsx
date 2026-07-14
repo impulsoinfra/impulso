@@ -146,7 +146,7 @@ export default async function CreatorProfilePage({ params }: Props) {
 
             {/* Compartir + Apoyar — top-right, opposite the avatar */}
             <div className="flex justify-end items-center gap-2 pt-4">
-              <ShareMenu options={profileShareOptions} triggerLabel="Compartir" />
+              <ShareMenu options={profileShareOptions} triggerLabel="Compartir" align="responsive" />
               <ImpulsarButton
                 creatorId={profile.id}
                 creatorName={profile.name}
