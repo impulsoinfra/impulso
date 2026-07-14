@@ -1,15 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Share2, Loader2, Check } from 'lucide-react'
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu'
 
 interface ShareOptionBase {
   key: string
@@ -86,9 +78,28 @@ export function ShareMenu({
   triggerClassName?: string
   compact?: boolean
 }) {
+  const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
   const [done, setDone] = useState<string | null>(null)
   const [error, setError] = useState(false)
+  const rootRef = useRef<HTMLDivElement>(null)
+
+  // Close on outside click or Escape.
+  useEffect(() => {
+    if (!open) return
+    function onPointerDown(e: PointerEvent) {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
 
   async function handle(opt: ShareOption) {
     setBusy(opt.key)
@@ -108,55 +119,61 @@ export function ShareMenu({
     }
   }
 
-  const trigger = compact ? (
-    <button
-      type="button"
-      aria-label="Compartir"
-      className={triggerClassName ?? 'text-muted2 hover:text-rosa shrink-0 p-1 transition-colors'}
-    >
-      <Share2 className="w-4 h-4" />
-    </button>
-  ) : (
-    <button
-      type="button"
-      className={
-        triggerClassName ??
-        'inline-flex items-center gap-2 border border-borde text-tinta hover:bg-tinta/[0.04] rounded-lg px-4 py-2 text-[13px] font-semibold transition-colors'
-      }
-    >
-      <Share2 className="w-4 h-4" />
-      {triggerLabel}
-    </button>
-  )
+  const triggerClass = compact
+    ? triggerClassName ?? 'text-muted2 hover:text-rosa shrink-0 p-1 transition-colors'
+    : triggerClassName ??
+      'inline-flex items-center gap-2 border border-borde text-tinta hover:bg-tinta/[0.04] rounded-lg px-4 py-2 text-[13px] font-semibold transition-colors'
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel>Compartir en redes</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {options.map((opt) => (
-          <DropdownMenuItem
-            key={opt.key}
-            onSelect={(e) => {
-              e.preventDefault()
-              handle(opt)
-            }}
-            className="flex items-center justify-between gap-3 cursor-pointer"
-          >
-            <div className="flex flex-col">
-              <span className="text-[13px] font-medium">{opt.label}</span>
-              {opt.hint && <span className="text-[11px] text-muted2">{opt.hint}</span>}
-            </div>
-            {busy === opt.key ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
-            ) : done === opt.key ? (
-              <Check className="w-3.5 h-3.5 text-exito shrink-0" />
-            ) : null}
-          </DropdownMenuItem>
-        ))}
-        {error && <p className="text-[11px] text-red-500 px-2 py-1">No se pudo generar la imagen. Probá de nuevo.</p>}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    // Plain absolute-positioned popover (no portal / floating-ui): stays correctly
+    // anchored under the desktop `body { zoom: 1.25 }`, which double-scales the
+    // measured coordinates Radix relies on and pushes its menu off-screen.
+    <div ref={rootRef} className="relative inline-block">
+      <button
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={compact ? 'Compartir' : undefined}
+        onClick={() => setOpen((o) => !o)}
+        className={triggerClass}
+      >
+        <Share2 className="w-4 h-4" />
+        {!compact && triggerLabel}
+      </button>
+
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 top-full mt-2 z-50 w-60 rounded-lg border border-borde bg-white shadow-lg py-1"
+        >
+          <p className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted2">
+            Compartir en redes
+          </p>
+          <div className="h-px bg-borde mx-1 mb-1" />
+          {options.map((opt) => (
+            <button
+              key={opt.key}
+              type="button"
+              role="menuitem"
+              onClick={() => handle(opt)}
+              className="w-full flex items-center justify-between gap-3 px-3 py-1.5 text-left hover:bg-tinta/[0.04] transition-colors"
+            >
+              <span className="flex flex-col min-w-0">
+                <span className="text-[13px] font-medium text-tinta">{opt.label}</span>
+                {opt.hint && <span className="text-[11px] text-muted2 truncate">{opt.hint}</span>}
+              </span>
+              {busy === opt.key ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0 text-muted2" />
+              ) : done === opt.key ? (
+                <Check className="w-3.5 h-3.5 text-exito shrink-0" />
+              ) : null}
+            </button>
+          ))}
+          {error && (
+            <p className="text-[11px] text-red-500 px-3 py-1">No se pudo compartir. Probá de nuevo.</p>
+          )}
+        </div>
+      )}
+    </div>
   )
 }
