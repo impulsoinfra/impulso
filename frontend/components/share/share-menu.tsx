@@ -11,17 +11,20 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 
-export interface ShareOption {
+interface ShareOptionBase {
   key: string
   label: string
   hint?: string
-  url: string
-  filename: string
 }
+// An image option fetches a generated PNG (share sheet on mobile / download on desktop).
+export type ImageShareOption = ShareOptionBase & { kind?: 'image'; url: string; filename: string }
+// A link option shares/copies a plain URL (triggers the OG preview in WhatsApp/Telegram/etc.).
+export type LinkShareOption = ShareOptionBase & { kind: 'link'; link: string }
+export type ShareOption = ImageShareOption | LinkShareOption
 
 // On mobile (Web Share API level 2) opens the native share sheet so the creator
 // can post straight to Instagram; on desktop it downloads the PNG to upload manually.
-async function shareOrDownload(opt: ShareOption) {
+async function shareOrDownload(opt: ImageShareOption) {
   const res = await fetch(opt.url)
   if (!res.ok) throw new Error('No se pudo generar la imagen')
   const blob = await res.blob()
@@ -49,6 +52,29 @@ async function shareOrDownload(opt: ShareOption) {
   URL.revokeObjectURL(objUrl)
 }
 
+// Shares a plain link: native share sheet on mobile (→ OG preview in WhatsApp/etc.),
+// clipboard copy on desktop. Relative links are resolved against the current origin
+// so it also works on preview deploys, not only the production domain.
+async function shareLink(opt: LinkShareOption) {
+  const url =
+    opt.link.startsWith('http') || typeof window === 'undefined'
+      ? opt.link
+      : window.location.origin + opt.link
+
+  const nav = typeof navigator !== 'undefined' ? navigator : undefined
+  if (nav?.share) {
+    try {
+      await nav.share({ url, title: 'Impulso' })
+      return
+    } catch (err) {
+      // User cancelled the native sheet — don't also copy
+      if (err instanceof DOMException && err.name === 'AbortError') return
+      // Any other failure: fall back to clipboard
+    }
+  }
+  await navigator.clipboard.writeText(url)
+}
+
 export function ShareMenu({
   options,
   triggerLabel = 'Compartir',
@@ -68,7 +94,11 @@ export function ShareMenu({
     setBusy(opt.key)
     setError(false)
     try {
-      await shareOrDownload(opt)
+      if (opt.kind === 'link') {
+        await shareLink(opt)
+      } else {
+        await shareOrDownload(opt)
+      }
       setDone(opt.key)
       setTimeout(() => setDone(null), 2000)
     } catch {

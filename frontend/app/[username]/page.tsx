@@ -5,6 +5,7 @@ import { Footer } from '@/components/layout/footer'
 import { ProfileBanner } from '@/components/profile/profile-banner'
 import { Globe, Calendar, FileText, ExternalLink } from 'lucide-react'
 import { ImpulsarButton } from '@/components/support/impulsar-button'
+import { ShareMenu, type ShareOption } from '@/components/share/share-menu'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import type { Metadata } from 'next'
@@ -100,6 +101,22 @@ export default async function CreatorProfilePage({ params }: Props) {
     ? Math.min(Math.round((Number(goal.current_amount) / Number(goal.target_amount)) * 100), 100)
     : 0
 
+  // Profile share hub: copy/share the link (OG preview) + the goal images when there's a goal.
+  // username is guaranteed by the route param.
+  const profileShareOptions: ShareOption[] = [
+    { key: 'link', kind: 'link', label: 'Copiar link del perfil', hint: `tuimpulso.ar/${username}`, link: `/${username}` },
+  ]
+  if (goal) {
+    profileShareOptions.push(
+      { key: 'meta-story', label: 'Meta — Historia', hint: '1080×1920', url: `/api/share/meta/${username}`, filename: 'impulso-meta-historia.png' },
+      { key: 'meta-feed', label: 'Meta — Feed', hint: '1080×1350', url: `/api/share/meta/${username}?format=post`, filename: 'impulso-meta-feed.png' },
+    )
+  }
+  const postShareOptions = (postId: string): ShareOption[] => [
+    { key: 'story', label: 'Historia', hint: '1080×1920', url: `/api/share/post/${postId}`, filename: 'impulso-publicacion-historia.png' },
+    { key: 'square', label: 'Cuadrado (feed)', hint: '1080×1080', url: `/api/share/post/${postId}?format=square`, filename: 'impulso-publicacion-cuadrado.png' },
+  ]
+
   return (
     <div className="min-h-screen bg-crema">
       <Header />
@@ -126,8 +143,9 @@ export default async function CreatorProfilePage({ params }: Props) {
             )}
           </div>
 
-          {/* Apoyar — top-right, opposite the avatar */}
-          <div className="flex justify-end pt-4">
+          {/* Compartir + Apoyar — top-right, opposite the avatar */}
+          <div className="flex justify-end items-center gap-2 pt-4">
+            <ShareMenu options={profileShareOptions} triggerLabel="Compartir" />
             <ImpulsarButton
               creatorId={profile.id}
               creatorName={profile.name}
@@ -260,14 +278,17 @@ export default async function CreatorProfilePage({ params }: Props) {
                           <span className="text-[10px] text-muted2">
                             {format(new Date(post.created_at), "d MMM yyyy", { locale: es })}
                           </span>
-                          <ImpulsarButton
-                            creatorId={profile.id}
-                            creatorName={profile.name}
-                            creatorUsername={username}
-                            postId={post.id}
-                            postTitle={post.title}
-                            creatorConnected={profile.mp_connected}
-                          />
+                          <div className="flex items-center gap-1 shrink-0">
+                            <ShareMenu options={postShareOptions(post.id)} compact />
+                            <ImpulsarButton
+                              creatorId={profile.id}
+                              creatorName={profile.name}
+                              creatorUsername={username}
+                              postId={post.id}
+                              postTitle={post.title}
+                              creatorConnected={profile.mp_connected}
+                            />
+                          </div>
                         </div>
                       </div>
                     )
