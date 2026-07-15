@@ -18,7 +18,7 @@ import {
 import {
   FileText, Target, User, Plus, Trash2, ExternalLink,
   Loader2, CheckCircle, AlertCircle, Camera, Pencil,
-  DollarSign, Wallet,
+  DollarSign, Wallet, Upload,
 } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -90,6 +90,7 @@ function DashboardContent() {
   const [savingPost, setSavingPost] = useState(false)
   const [postMsg, setPostMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null)
+  const [uploadingPostImage, setUploadingPostImage] = useState(false)
 
   // Goal form
   const [goalTitle, setGoalTitle] = useState('')
@@ -119,6 +120,7 @@ function DashboardContent() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const bannerInputRef = useRef<HTMLInputElement>(null)
   const avatarInputRef = useRef<HTMLInputElement>(null)
+  const postImageInputRef = useRef<HTMLInputElement>(null)
 
   const loadData = useCallback(async () => {
     const client = getClient()
@@ -183,7 +185,8 @@ function DashboardContent() {
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault()
     const client = getClient()
-    if (!user || !client || !postContent.trim()) return
+    // Allow a post with just an image (no text) or just text.
+    if (!user || !client || (!postContent.trim() && !postMediaUrl.trim())) return
     setSavingPost(true)
     setPostMsg(null)
     try {
@@ -332,6 +335,31 @@ function DashboardContent() {
       setProfileMsg({ ok: false, text: 'No se pudo subir la imagen. Intentá de nuevo.' })
     } finally {
       setUploading(false)
+    }
+  }
+
+  // Uploads a post image to the public `posts` bucket (owner-folder RLS, same as
+  // banners/avatars) and fills postMediaUrl with its public URL.
+  const handleUploadPostImage = async (file: File) => {
+    const client = getClient()
+    if (!user || !client) return
+    if (!file.type.startsWith('image/')) { setPostMsg({ ok: false, text: 'Elegí una imagen.' }); return }
+    if (file.size > 5 * 1024 * 1024) { setPostMsg({ ok: false, text: 'La imagen supera los 5MB.' }); return }
+    setUploadingPostImage(true)
+    setPostMsg(null)
+    try {
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
+      const path = `${user.id}/post-${Date.now()}.${ext}`
+      const { error: upErr } = await client.storage.from('posts').upload(path, file, { upsert: true, cacheControl: '3600' })
+      if (upErr) throw upErr
+      const { data } = client.storage.from('posts').getPublicUrl(path)
+      setPostMediaUrl(data.publicUrl)
+      setPostType('image')
+    } catch (err) {
+      console.error('[upload post image]', err)
+      setPostMsg({ ok: false, text: 'No se pudo subir la imagen. Intentá de nuevo.' })
+    } finally {
+      setUploadingPostImage(false)
     }
   }
 
@@ -528,17 +556,58 @@ function DashboardContent() {
                           <input id="post-title" value={postTitle} onChange={(e) => setPostTitle(e.target.value)} placeholder="Título de la publicación" className={inputCls} />
                         </div>
                         <div>
-                          <Label htmlFor="post-content" className={labelCls}>Contenido *</Label>
-                          <Textarea id="post-content" value={postContent} onChange={(e) => setPostContent(e.target.value)} placeholder="¿Qué querés compartir?" rows={4} required />
+                          <Label htmlFor="post-content" className={labelCls}>
+                            {postType === 'image' ? 'Descripción (opcional)' : 'Contenido *'}
+                          </Label>
+                          <Textarea id="post-content" value={postContent} onChange={(e) => setPostContent(e.target.value)} placeholder="¿Qué querés compartir?" rows={4} />
                         </div>
-                        {postType !== 'text' && (
+
+                        {postType === 'image' && (
+                          <div>
+                            <Label className={labelCls}>Imagen</Label>
+                            {postMediaUrl ? (
+                              <div className="relative">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={postMediaUrl} alt="Vista previa" className="w-full max-h-56 object-contain rounded-lg border border-borde bg-crema" />
+                                <button
+                                  type="button"
+                                  onClick={() => setPostMediaUrl('')}
+                                  aria-label="Quitar imagen"
+                                  className="absolute top-1.5 right-1.5 bg-tinta/70 hover:bg-tinta text-white rounded-full p-1 transition-colors"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => postImageInputRef.current?.click()}
+                                disabled={uploadingPostImage}
+                                className="w-full border border-dashed border-borde rounded-lg py-6 flex flex-col items-center justify-center gap-1.5 text-txt2 hover:border-rosa hover:text-rosa transition-colors disabled:opacity-60"
+                              >
+                                {uploadingPostImage ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
+                                <span className="text-[12px] font-medium">{uploadingPostImage ? 'Subiendo...' : 'Subir imagen'}</span>
+                                <span className="text-[10px] text-muted2">JPG, PNG, GIF o WEBP · hasta 5MB</span>
+                              </button>
+                            )}
+                            <input
+                              ref={postImageInputRef}
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) handleUploadPostImage(f) }}
+                            />
+                          </div>
+                        )}
+
+                        {(postType === 'link' || postType === 'audio') && (
                           <div>
                             <Label htmlFor="post-url" className={labelCls}>URL</Label>
                             <input id="post-url" value={postMediaUrl} onChange={(e) => setPostMediaUrl(e.target.value)} placeholder="https://..." className={inputCls} />
                           </div>
                         )}
                         {postMsg && <Feedback ok={postMsg.ok} text={postMsg.text} />}
-                        <button type="submit" className={`w-full ${primaryBtn}`} disabled={savingPost || !postContent.trim()}>
+                        <button type="submit" className={`w-full ${primaryBtn}`} disabled={savingPost || uploadingPostImage || (!postContent.trim() && !postMediaUrl.trim())}>
                           {savingPost && <Loader2 className="w-4 h-4 animate-spin" />} Publicar
                         </button>
                       </form>
@@ -563,9 +632,13 @@ function DashboardContent() {
                           style={{ borderLeft: `4px solid ${postAccent(post.post_type)}` }}
                         >
                           <div className="flex items-start justify-between gap-3">
+                            {post.post_type === 'image' && post.media_url && (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={post.media_url} alt="" className="w-12 h-12 rounded object-cover shrink-0 border border-borde" />
+                            )}
                             <div className="flex-1 min-w-0">
                               {post.title && <p className="font-semibold text-tinta text-[13px] mb-1 truncate">{post.title}</p>}
-                              <p className="text-txt2 text-[12px] leading-relaxed line-clamp-2">{post.content}</p>
+                              {post.content && <p className="text-txt2 text-[12px] leading-relaxed line-clamp-2">{post.content}</p>}
                               <div className="flex items-center gap-2.5 mt-2">
                                 <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full border border-borde text-txt2 capitalize">
                                   {post.post_type}

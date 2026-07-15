@@ -264,7 +264,16 @@ export default async function CreatorProfilePage({ params }: Props) {
                             />
                           </div>
                         )}
-                        {post.media_url && !ytId && (
+                        {post.media_url && !ytId && post.post_type === 'image' && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          // Natural aspect ratio (no crop) so artwork is shown in full
+                          <img
+                            src={post.media_url}
+                            alt={post.title ?? 'Imagen de la publicación'}
+                            className="w-full h-auto rounded-lg border border-borde mb-2"
+                          />
+                        )}
+                        {post.media_url && !ytId && post.post_type !== 'image' && (
                           <a
                             href={post.media_url}
                             target="_blank"
