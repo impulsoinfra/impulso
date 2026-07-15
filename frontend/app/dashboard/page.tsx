@@ -18,11 +18,12 @@ import {
 import {
   FileText, Target, User, Plus, Trash2, ExternalLink,
   Loader2, CheckCircle, AlertCircle, Camera, Pencil,
-  DollarSign, Wallet, Upload,
+  DollarSign, Wallet, Upload, Heart,
 } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { ShareMenu, type ShareOption } from '@/components/share/share-menu'
+import { getSupportMessages, type SupportMessage } from '@/lib/support'
 
 const CREATOR_TYPES = [
   'DJs', 'Artistas', 'Músicos', 'Fotógrafos', 'Escritores',
@@ -80,6 +81,7 @@ function DashboardContent() {
 
   const [posts, setPosts] = useState<Post[]>([])
   const [goal, setGoal] = useState<Goal | null>(null)
+  const [supports, setSupports] = useState<SupportMessage[]>([])
   const [loadingData, setLoadingData] = useState(true)
 
   // Post form
@@ -130,12 +132,14 @@ function DashboardContent() {
     }
     setLoadingData(true)
     try {
-      const [{ data: postsData }, { data: goalData }] = await Promise.all([
+      const [{ data: postsData }, { data: goalData }, supportsData] = await Promise.all([
         client.from('posts').select('*').eq('creator_id', user.id).order('created_at', { ascending: false }),
         client.from('goals').select('*').eq('creator_id', user.id).eq('is_active', true).limit(1).maybeSingle(),
+        getSupportMessages(client, user.id, 60),
       ])
       setPosts(postsData ?? [])
       setGoal(goalData ?? null)
+      setSupports(supportsData)
     } catch (err) {
       console.error('[loadData]', err)
     } finally {
@@ -523,6 +527,7 @@ function DashboardContent() {
                 {[
                   { v: 'posts', icon: FileText, label: 'Publicaciones' },
                   { v: 'goal', icon: Target, label: 'Mi meta' },
+                  { v: 'apoyos', icon: Heart, label: 'Apoyos' },
                   { v: 'profile', icon: User, label: 'Mi perfil' },
                 ].map(({ v, icon: Icon, label }) => (
                   <TabsTrigger
@@ -761,6 +766,39 @@ function DashboardContent() {
                       </div>
                     </form>
                   </div>
+                </div>
+              </TabsContent>
+
+              {/* APOYOS TAB */}
+              <TabsContent value="apoyos">
+                <div className="max-w-2xl">
+                  <p className="text-[13px] text-txt2 mb-4">
+                    Mensajes que te dejaron quienes te apoyaron. También se muestran en tu perfil público.
+                  </p>
+                  {loadingData ? (
+                    <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-rosa/60" /></div>
+                  ) : supports.length === 0 ? (
+                    <div className="bg-white border border-dashed border-borde rounded-xl py-12 text-center">
+                      <Heart className="w-10 h-10 text-muted2 mx-auto mb-3" />
+                      <p className="text-txt2 font-medium text-sm">Todavía no recibiste mensajes</p>
+                      <p className="text-muted2 text-xs mt-1">Cuando alguien te apoye y deje un mensaje, va a aparecer acá.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {supports.map((s) => (
+                        <div key={s.id} className="bg-white border border-borde rounded-[10px] p-3.5" style={{ borderLeft: '4px solid #F0355C' }}>
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <span className="font-semibold text-tinta text-[13px] truncate">{s.name}</span>
+                            <span className="text-rosa font-bold text-[13px] shrink-0">${s.amount.toLocaleString('es-AR')}</span>
+                          </div>
+                          <p className="text-txt2 text-[12px] leading-relaxed whitespace-pre-wrap">{s.message}</p>
+                          <span className="block text-[10px] text-muted2 mt-2">
+                            {format(new Date(s.created_at), "d MMM yyyy", { locale: es })}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </TabsContent>
 

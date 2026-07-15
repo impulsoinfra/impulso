@@ -3,9 +3,11 @@ import { createServerClient } from '@/lib/supabase-server'
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 import { ProfileBanner } from '@/components/profile/profile-banner'
-import { Globe, Calendar, FileText, ExternalLink } from 'lucide-react'
+import { Globe, Calendar, FileText, ExternalLink, Heart } from 'lucide-react'
 import { ImpulsarButton } from '@/components/support/impulsar-button'
 import { ShareMenu, type ShareOption } from '@/components/share/share-menu'
+import { getAdminClient } from '@/lib/supabase-admin'
+import { getSupportMessages, type SupportMessage } from '@/lib/support'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import type { Metadata } from 'next'
@@ -92,6 +94,15 @@ export default async function CreatorProfilePage({ params }: Props) {
       .limit(1)
       .maybeSingle(),
   ])
+
+  // Public support wall — read via the service-role client (donations RLS blocks anon).
+  // Non-critical: if it fails, the profile still renders.
+  let supports: SupportMessage[] = []
+  try {
+    supports = await getSupportMessages(getAdminClient(), profile.id, 40)
+  } catch (e) {
+    console.error('[support wall]', e)
+  }
 
   const initials = profile.name
     ? profile.name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()
@@ -341,6 +352,33 @@ export default async function CreatorProfilePage({ params }: Props) {
           </div>
         </div>
       </section>
+
+      {/* Support wall — approved donation messages (social proof). Hidden if empty. */}
+      {supports.length > 0 && (
+        <section className="bg-crema pb-14">
+          <div className="wrap">
+            <div className="max-w-[960px] mx-auto">
+              <h2 className="disp text-tinta text-[16px] uppercase mb-3 flex items-center gap-2">
+                <Heart className="w-4 h-4 text-rosa" /> Mensajes de apoyo
+              </h2>
+              <div className="grid sm:grid-cols-2 gap-3">
+                {supports.map((s) => (
+                  <div key={s.id} className="bg-white border border-borde rounded-[10px] p-3.5">
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <span className="font-semibold text-tinta text-[13px] truncate">{s.name}</span>
+                      <span className="text-rosa font-bold text-[12px] shrink-0">${s.amount.toLocaleString('es-AR')}</span>
+                    </div>
+                    <p className="text-txt2 text-[12px] leading-relaxed whitespace-pre-wrap">{s.message}</p>
+                    <span className="block text-[10px] text-muted2 mt-2">
+                      {format(new Date(s.created_at), "d MMM yyyy", { locale: es })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       <Footer />
     </div>
