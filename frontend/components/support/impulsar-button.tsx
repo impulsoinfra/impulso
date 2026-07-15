@@ -10,7 +10,7 @@ import { Heart, Loader2, AlertCircle } from 'lucide-react'
 import { PRICING } from '@/lib/constants'
 import { useAuth } from '@/hooks/use-auth'
 
-const PRESETS = [500, 1000, 2000]
+const PRESETS = [1000, 2000, 5000, 10000]
 
 interface ImpulsarButtonProps {
   creatorId: string
@@ -162,7 +162,7 @@ export function ImpulsarButton({
               <div className="space-y-4 py-2">
                 <div className="space-y-1.5">
                   <Label className="text-tinta">Elegí un monto (ARS)</Label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 gap-2">
                     {PRESETS.map((p) => {
                       const active = !customAmount && amount === p
                       return (
