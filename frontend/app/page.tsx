@@ -43,7 +43,7 @@ export default async function ImpulsoLanding() {
   const supabase = createServerClient()
   const { data: creatorRows } = await supabase
     .from('profiles')
-    .select('name, username, creator_type, location, goals!inner(title, target_amount, current_amount, is_active)')
+    .select('name, username, creator_type, avatar_url, location, goals!inner(title, target_amount, current_amount, is_active)')
     .eq('role', 'artist')
     .eq('goals.is_active', true)
     .not('username', 'is', null)
@@ -57,7 +57,10 @@ export default async function ImpulsoLanding() {
       return {
         name: p.name as string,
         username: p.username as string,
-        meta: [p.creator_type, p.location].filter(Boolean).join(' · '),
+        avatarUrl: (p.avatar_url as string | null) ?? null,
+        meta: [p.creator_type, p.location].filter(Boolean).join(' · ') || 'Creador',
+        goalTitle: (g?.title as string) ?? '',
+        initials: ((p.name || p.username) as string).split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase(),
         current,
         target,
         pct: target > 0 ? Math.min(Math.round((current / target) * 100), 100) : 0,
@@ -231,28 +234,44 @@ export default async function ImpulsoLanding() {
             </div>
             <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
               {featured.map((c) => (
-                <div key={c.username} className="bg-white border border-borde rounded-[10px] overflow-hidden">
+                <Link
+                  key={c.username}
+                  href={`/${c.username}`}
+                  className="bg-white border border-borde rounded-[10px] overflow-hidden block hover:shadow-md transition-shadow"
+                >
                   <div className="h-1" style={{ background: c.accent }} />
                   <div className="p-3">
-                    <Link href={`/${c.username}`} className="block text-[13px] font-semibold text-tinta mb-0.5 hover:text-rosa transition-colors truncate">
-                      {c.name}
-                    </Link>
-                    <p className="text-[11px] text-txt2 mb-2.5 truncate">{c.meta}</p>
-                    <div className="h-1.5 bg-track rounded-full overflow-hidden mb-1.5">
+                    <div className="flex items-center gap-2 mb-2">
+                      {c.avatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={c.avatarUrl} alt="" className="w-[26px] h-[26px] rounded-full object-cover shrink-0" />
+                      ) : (
+                        <div className="w-[26px] h-[26px] rounded-full flex items-center justify-center text-white text-[9px] font-bold shrink-0" style={{ background: c.accent }}>
+                          {c.initials}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-[12.5px] font-semibold text-tinta truncate">{c.name}</p>
+                        <p className="text-[10px] text-txt2 truncate">{c.meta}</p>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-tinta mb-1.5 truncate flex items-center gap-1">
+                      <Target className="w-2.5 h-2.5 text-naranja shrink-0" /> {c.goalTitle}
+                    </p>
+                    <div className="h-[5px] bg-track rounded-full overflow-hidden mb-1.5">
                       <div className="h-full" style={{ width: `${c.pct}%`, background: c.accent }} />
                     </div>
-                    <p className="text-[10px] text-txt2 mb-2.5">
+                    <p className="text-[9.5px] text-txt2 mb-2.5">
                       ${c.current.toLocaleString('es-AR')} / ${c.target.toLocaleString('es-AR')}
                     </p>
-                    <Link
-                      href={`/${c.username}`}
-                      className="block text-center w-full rounded-md py-1.5 text-xs font-semibold border transition-colors hover:bg-black/[0.03]"
+                    <span
+                      className="block text-center w-full rounded-md py-1.5 text-[11px] font-semibold border transition-colors hover:bg-black/[0.03]"
                       style={{ borderColor: c.btnBorder, color: c.btnText }}
                     >
                       Apoyar
-                    </Link>
+                    </span>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
