@@ -351,10 +351,10 @@ function DashboardContent() {
 
   // Uploads one or more post images to the public `posts` bucket (owner-folder RLS,
   // same as banners/avatars) and appends their public URLs to postImages (carousel).
-  const handleUploadPostImages = async (files: FileList) => {
+  const handleUploadPostImages = async (files: File[]) => {
     const client = getClient()
     if (!user || !client) return
-    const picked = Array.from(files)
+    const picked = files
     const room = MAX_POST_IMAGES - postImages.length
     if (room <= 0) { setPostMsg({ ok: false, text: `Máximo ${MAX_POST_IMAGES} imágenes.` }); return }
     const batch = picked.slice(0, room)
@@ -365,7 +365,7 @@ function DashboardContent() {
       const uploaded: string[] = []
       for (const file of batch) {
         if (!file.type.startsWith('image/')) { setPostMsg({ ok: false, text: 'Elegí solo imágenes.' }); continue }
-        if (file.size > 5 * 1024 * 1024) { setPostMsg({ ok: false, text: 'Cada imagen debe pesar menos de 5MB.' }); continue }
+        if (file.size > 10 * 1024 * 1024) { setPostMsg({ ok: false, text: 'Cada imagen debe pesar menos de 10MB.' }); continue }
         const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
         const path = `${user.id}/post-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
         const { error: upErr } = await client.storage.from('posts').upload(path, file, { upsert: true, cacheControl: '3600' })
@@ -619,7 +619,7 @@ function DashboardContent() {
                                 <span className="text-[12px] font-medium">
                                   {uploadingPostImage ? 'Subiendo...' : postImages.length > 0 ? 'Agregar más' : 'Subir imágenes'}
                                 </span>
-                                <span className="text-[10px] text-muted2">Hasta {MAX_POST_IMAGES} · JPG, PNG, GIF o WEBP · 5MB c/u</span>
+                                <span className="text-[10px] text-muted2">Hasta {MAX_POST_IMAGES} · JPG, PNG, GIF o WEBP · 10MB c/u</span>
                               </button>
                             )}
                             <input
@@ -628,7 +628,7 @@ function DashboardContent() {
                               accept="image/*"
                               multiple
                               className="hidden"
-                              onChange={(e) => { const fs = e.target.files; e.target.value = ''; if (fs && fs.length) handleUploadPostImages(fs) }}
+                              onChange={(e) => { const files = Array.from(e.target.files ?? []); e.target.value = ''; if (files.length) handleUploadPostImages(files) }}
                             />
                           </div>
                         )}
