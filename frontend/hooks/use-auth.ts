@@ -8,7 +8,7 @@ export interface UserProfile {
   id: string
   email: string
   name: string
-  role: 'artist' | 'supporter'
+  role: 'creator' | 'supporter'
   created_at: string
   updated_at: string
   [key: string]: any
@@ -20,7 +20,7 @@ interface AuthContextType {
   session: Session | null
   loading: boolean
   getClient: () => SupabaseClient | null
-  signUp: (email: string, password: string, name: string, role: 'artist' | 'supporter') => Promise<{ data: any; error: any }>
+  signUp: (email: string, password: string, name: string, role: 'creator' | 'supporter') => Promise<{ data: any; error: any }>
   signIn: (email: string, password: string) => Promise<{ data: any; error: any }>
   signOut: () => Promise<{ error: any }>
   refreshProfile: () => Promise<void>
@@ -124,7 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [isClient, getClient, loadUserProfile])
 
   const handleSignUp = useCallback(async (
-    email: string, password: string, name: string, role: 'artist' | 'supporter'
+    email: string, password: string, name: string, role: 'creator' | 'supporter'
   ) => {
     const client = getClient()
     if (!client) return { data: null, error: new Error('Client not available') }

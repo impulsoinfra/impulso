@@ -44,7 +44,7 @@ export default async function ImpulsoLanding() {
   const { data: creatorRows } = await supabase
     .from('profiles')
     .select('name, username, creator_type, avatar_url, location, goals!inner(title, target_amount, current_amount, is_active)')
-    .eq('role', 'artist')
+    .eq('role', 'creator')
     .eq('goals.is_active', true)
     .not('username', 'is', null)
     .limit(12)

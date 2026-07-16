@@ -122,7 +122,7 @@ export const authApi = {
     email: string
     password: string
     name: string
-    role: 'artist' | 'supporter'
+    role: 'creator' | 'supporter'
   }): Promise<any> => {
     return apiRequest('/api/auth/register', {
       method: 'POST',

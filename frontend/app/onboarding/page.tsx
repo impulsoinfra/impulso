@@ -40,7 +40,7 @@ function OnboardingContent() {
   useEffect(() => {
     if (!profile) return
     const p = profile as any
-    if (p.role !== 'artist' || p.username) {
+    if (p.role !== 'creator' || p.username) {
       router.replace('/dashboard')
       return
     }
@@ -81,7 +81,7 @@ function OnboardingContent() {
     }
   }
 
-  if (!profile || (profile as any).role !== 'artist' || (profile as any).username) {
+  if (!profile || (profile as any).role !== 'creator' || (profile as any).username) {
     return (
       <div className="min-h-screen bg-crema flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-rosa" />

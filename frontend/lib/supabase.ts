@@ -124,13 +124,13 @@ export interface UserProfile {
   id: string
   email: string
   name: string
-  role: 'artist' | 'supporter'
+  role: 'creator' | 'supporter'
   created_at: string
   updated_at: string
 }
 
 // Función para registrar un nuevo usuario
-export async function signUp(email: string, password: string, name: string, role: 'artist' | 'supporter') {
+export async function signUp(email: string, password: string, name: string, role: 'creator' | 'supporter') {
   try {
     const client = getSupabaseClient()
     const { data, error } = await client.auth.signUp({

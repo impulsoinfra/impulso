@@ -41,7 +41,7 @@ export default function DiscoverPage() {
         const { data, error } = await client
           .from('profiles')
           .select('id, name, username, creator_type, avatar_url, location, goals!inner(title, target_amount, current_amount, is_active)')
-          .eq('role', 'artist')
+          .eq('role', 'creator')
           .eq('goals.is_active', true)
           .not('username', 'is', null)
         if (error) throw error

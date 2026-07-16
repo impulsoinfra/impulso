@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
     email TEXT NOT NULL,
     name TEXT NOT NULL,
-    role TEXT NOT NULL CHECK (role IN ('artist', 'supporter')),
+    role TEXT NOT NULL CHECK (role IN ('creator', 'supporter')),
     avatar_url TEXT,
     bio TEXT,
     website TEXT,

@@ -16,14 +16,14 @@ const labelCls = 'text-[11px] font-semibold text-tinta block mb-1.5'
 
 const ACCOUNT_TYPES = [
   { role: 'supporter' as const, icon: Heart, label: 'Seguidor', desc: 'Descubrí creadores y apoyá su trabajo.' },
-  { role: 'artist' as const, icon: Star, label: 'Creador', desc: 'Compartí tu trabajo y recibí apoyo.' },
+  { role: 'creator' as const, icon: Star, label: 'Creador', desc: 'Compartí tu trabajo y recibí apoyo.' },
 ]
 
 export default function RegisterPage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [role, setRole] = useState<'artist' | 'supporter'>('supporter')
+  const [role, setRole] = useState<'creator' | 'supporter'>('supporter')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')

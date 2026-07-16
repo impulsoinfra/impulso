@@ -75,7 +75,7 @@ function DashboardContent() {
   const router = useRouter()
 
   // Creators without a username haven't finished onboarding — send them there.
-  const needsOnboarding = !!profile && (profile as any).role === 'artist' && !(profile as any).username
+  const needsOnboarding = !!profile && (profile as any).role === 'creator' && !(profile as any).username
   useEffect(() => {
     if (needsOnboarding) router.replace('/onboarding')
   }, [needsOnboarding, router])
@@ -394,7 +394,7 @@ function DashboardContent() {
     setBecomingCreator(true)
     setBecomeMsg(null)
     try {
-      const { error } = await client.from('profiles').update({ role: 'artist' }).eq('id', user.id)
+      const { error } = await client.from('profiles').update({ role: 'creator' }).eq('id', user.id)
       if (error) throw error
       await refreshProfile()
       router.push('/onboarding')
@@ -434,7 +434,7 @@ function DashboardContent() {
     )
   }
 
-  const isCreator = profile.role === 'artist'
+  const isCreator = profile.role === 'creator'
   const goalPercent = goal ? Math.min(Math.round((goal.current_amount / goal.target_amount) * 100), 100) : 0
   const p = profile as any
   const username: string = p.username ?? ''
