@@ -43,6 +43,7 @@ interface Post {
   content: string
   post_type: string
   media_url: string | null
+  media_urls: string[] | null
   created_at: string
 }
 
@@ -89,6 +90,7 @@ function DashboardContent() {
   const [postContent, setPostContent] = useState('')
   const [postType, setPostType] = useState('text')
   const [postMediaUrl, setPostMediaUrl] = useState('')
+  const [postImages, setPostImages] = useState<string[]>([])
   const [savingPost, setSavingPost] = useState(false)
   const [postMsg, setPostMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null)
@@ -189,8 +191,9 @@ function DashboardContent() {
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault()
     const client = getClient()
-    // Allow a post with just an image (no text) or just text.
-    if (!user || !client || (!postContent.trim() && !postMediaUrl.trim())) return
+    const isImage = postType === 'image'
+    // Allow a post with just image(s) (no text) or just text.
+    if (!user || !client || (!postContent.trim() && (isImage ? postImages.length === 0 : !postMediaUrl.trim()))) return
     setSavingPost(true)
     setPostMsg(null)
     try {
@@ -199,13 +202,15 @@ function DashboardContent() {
         title: postTitle.trim() || null,
         content: postContent.trim(),
         post_type: postType,
-        media_url: postMediaUrl.trim() || null,
+        // Images go in media_urls (carousel); media_url keeps the first for compat.
+        media_url: isImage ? postImages[0] ?? null : postMediaUrl.trim() || null,
+        media_urls: isImage && postImages.length > 0 ? postImages : null,
       })
       if (error) {
         setPostMsg({ ok: false, text: 'Error al publicar. Intentá de nuevo.' })
       } else {
         setPostMsg({ ok: true, text: '¡Publicación creada!' })
-        setPostTitle(''); setPostContent(''); setPostMediaUrl(''); setPostType('text')
+        setPostTitle(''); setPostContent(''); setPostMediaUrl(''); setPostImages([]); setPostType('text')
         await loadData()
       }
     } catch (err) {
@@ -342,26 +347,38 @@ function DashboardContent() {
     }
   }
 
-  // Uploads a post image to the public `posts` bucket (owner-folder RLS, same as
-  // banners/avatars) and fills postMediaUrl with its public URL.
-  const handleUploadPostImage = async (file: File) => {
+  const MAX_POST_IMAGES = 10
+
+  // Uploads one or more post images to the public `posts` bucket (owner-folder RLS,
+  // same as banners/avatars) and appends their public URLs to postImages (carousel).
+  const handleUploadPostImages = async (files: FileList) => {
     const client = getClient()
     if (!user || !client) return
-    if (!file.type.startsWith('image/')) { setPostMsg({ ok: false, text: 'Elegí una imagen.' }); return }
-    if (file.size > 5 * 1024 * 1024) { setPostMsg({ ok: false, text: 'La imagen supera los 5MB.' }); return }
+    const picked = Array.from(files)
+    const room = MAX_POST_IMAGES - postImages.length
+    if (room <= 0) { setPostMsg({ ok: false, text: `Máximo ${MAX_POST_IMAGES} imágenes.` }); return }
+    const batch = picked.slice(0, room)
+
     setUploadingPostImage(true)
     setPostMsg(null)
     try {
-      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
-      const path = `${user.id}/post-${Date.now()}.${ext}`
-      const { error: upErr } = await client.storage.from('posts').upload(path, file, { upsert: true, cacheControl: '3600' })
-      if (upErr) throw upErr
-      const { data } = client.storage.from('posts').getPublicUrl(path)
-      setPostMediaUrl(data.publicUrl)
-      setPostType('image')
+      const uploaded: string[] = []
+      for (const file of batch) {
+        if (!file.type.startsWith('image/')) { setPostMsg({ ok: false, text: 'Elegí solo imágenes.' }); continue }
+        if (file.size > 5 * 1024 * 1024) { setPostMsg({ ok: false, text: 'Cada imagen debe pesar menos de 5MB.' }); continue }
+        const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
+        const path = `${user.id}/post-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+        const { error: upErr } = await client.storage.from('posts').upload(path, file, { upsert: true, cacheControl: '3600' })
+        if (upErr) throw upErr
+        uploaded.push(client.storage.from('posts').getPublicUrl(path).data.publicUrl)
+      }
+      if (uploaded.length > 0) {
+        setPostImages((prev) => [...prev, ...uploaded])
+        setPostType('image')
+      }
     } catch (err) {
-      console.error('[upload post image]', err)
-      setPostMsg({ ok: false, text: 'No se pudo subir la imagen. Intentá de nuevo.' })
+      console.error('[upload post images]', err)
+      setPostMsg({ ok: false, text: 'No se pudo subir alguna imagen. Intentá de nuevo.' })
     } finally {
       setUploadingPostImage(false)
     }
@@ -569,38 +586,49 @@ function DashboardContent() {
 
                         {postType === 'image' && (
                           <div>
-                            <Label className={labelCls}>Imagen</Label>
-                            {postMediaUrl ? (
-                              <div className="relative">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={postMediaUrl} alt="Vista previa" className="w-full max-h-56 object-contain rounded-lg border border-borde bg-crema" />
-                                <button
-                                  type="button"
-                                  onClick={() => setPostMediaUrl('')}
-                                  aria-label="Quitar imagen"
-                                  className="absolute top-1.5 right-1.5 bg-tinta/70 hover:bg-tinta text-white rounded-full p-1 transition-colors"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
+                            <Label className={labelCls}>Imágenes</Label>
+                            {postImages.length > 0 && (
+                              <div className="grid grid-cols-3 gap-2 mb-2">
+                                {postImages.map((url, i) => (
+                                  <div key={url} className="relative aspect-square">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={url} alt={`Imagen ${i + 1}`} className="w-full h-full object-cover rounded-lg border border-borde" />
+                                    <button
+                                      type="button"
+                                      onClick={() => setPostImages((prev) => prev.filter((u) => u !== url))}
+                                      aria-label="Quitar imagen"
+                                      className="absolute top-1 right-1 bg-tinta/70 hover:bg-tinta text-white rounded-full p-1 transition-colors"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </button>
+                                    {i === 0 && (
+                                      <span className="absolute bottom-1 left-1 bg-tinta/75 text-white text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full">Portada</span>
+                                    )}
+                                  </div>
+                                ))}
                               </div>
-                            ) : (
+                            )}
+                            {postImages.length < MAX_POST_IMAGES && (
                               <button
                                 type="button"
                                 onClick={() => postImageInputRef.current?.click()}
                                 disabled={uploadingPostImage}
-                                className="w-full border border-dashed border-borde rounded-lg py-6 flex flex-col items-center justify-center gap-1.5 text-txt2 hover:border-rosa hover:text-rosa transition-colors disabled:opacity-60"
+                                className="w-full border border-dashed border-borde rounded-lg py-5 flex flex-col items-center justify-center gap-1.5 text-txt2 hover:border-rosa hover:text-rosa transition-colors disabled:opacity-60"
                               >
                                 {uploadingPostImage ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
-                                <span className="text-[12px] font-medium">{uploadingPostImage ? 'Subiendo...' : 'Subir imagen'}</span>
-                                <span className="text-[10px] text-muted2">JPG, PNG, GIF o WEBP · hasta 5MB</span>
+                                <span className="text-[12px] font-medium">
+                                  {uploadingPostImage ? 'Subiendo...' : postImages.length > 0 ? 'Agregar más' : 'Subir imágenes'}
+                                </span>
+                                <span className="text-[10px] text-muted2">Hasta {MAX_POST_IMAGES} · JPG, PNG, GIF o WEBP · 5MB c/u</span>
                               </button>
                             )}
                             <input
                               ref={postImageInputRef}
                               type="file"
                               accept="image/*"
+                              multiple
                               className="hidden"
-                              onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) handleUploadPostImage(f) }}
+                              onChange={(e) => { const fs = e.target.files; e.target.value = ''; if (fs && fs.length) handleUploadPostImages(fs) }}
                             />
                           </div>
                         )}
@@ -612,7 +640,7 @@ function DashboardContent() {
                           </div>
                         )}
                         {postMsg && <Feedback ok={postMsg.ok} text={postMsg.text} />}
-                        <button type="submit" className={`w-full ${primaryBtn}`} disabled={savingPost || uploadingPostImage || (!postContent.trim() && !postMediaUrl.trim())}>
+                        <button type="submit" className={`w-full ${primaryBtn}`} disabled={savingPost || uploadingPostImage || (!postContent.trim() && (postType === 'image' ? postImages.length === 0 : !postMediaUrl.trim()))}>
                           {savingPost && <Loader2 className="w-4 h-4 animate-spin" />} Publicar
                         </button>
                       </form>
@@ -637,9 +665,16 @@ function DashboardContent() {
                           style={{ borderLeft: `4px solid ${postAccent(post.post_type)}` }}
                         >
                           <div className="flex items-start justify-between gap-3">
-                            {post.post_type === 'image' && post.media_url && (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={post.media_url} alt="" className="w-12 h-12 rounded object-cover shrink-0 border border-borde" />
+                            {post.post_type === 'image' && (post.media_urls?.[0] || post.media_url) && (
+                              <div className="relative shrink-0">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={post.media_urls?.[0] || post.media_url || ''} alt="" className="w-12 h-12 rounded object-cover border border-borde" />
+                                {(post.media_urls?.length ?? 0) > 1 && (
+                                  <span className="absolute -top-1 -right-1 bg-tinta text-white text-[9px] font-semibold rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center">
+                                    {post.media_urls!.length}
+                                  </span>
+                                )}
+                              </div>
                             )}
                             <div className="flex-1 min-w-0">
                               {post.title && <p className="font-semibold text-tinta text-[13px] mb-1 truncate">{post.title}</p>}

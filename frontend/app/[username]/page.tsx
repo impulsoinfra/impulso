@@ -6,6 +6,7 @@ import { ProfileBanner } from '@/components/profile/profile-banner'
 import { Globe, Calendar, FileText, ExternalLink, Heart } from 'lucide-react'
 import { ImpulsarButton } from '@/components/support/impulsar-button'
 import { ShareMenu, type ShareOption } from '@/components/share/share-menu'
+import { PostCarousel } from '@/components/posts/post-carousel'
 import { getAdminClient } from '@/lib/supabase-admin'
 import { getSupportMessages, type SupportMessage } from '@/lib/support'
 import { format } from 'date-fns'
@@ -235,13 +236,10 @@ export default async function CreatorProfilePage({ params }: Props) {
                             />
                           </div>
                         )}
-                        {post.media_url && !ytId && post.post_type === 'image' && (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          // Natural aspect ratio (no crop) so artwork is shown in full
-                          <img
-                            src={post.media_url}
-                            alt={post.title ?? 'Imagen de la publicación'}
-                            className="w-full h-auto rounded-lg border border-borde mb-2"
+                        {post.post_type === 'image' && !ytId && (post.media_urls?.length || post.media_url) && (
+                          <PostCarousel
+                            images={post.media_urls?.length ? post.media_urls : post.media_url ? [post.media_url] : []}
+                            alt={post.title ?? undefined}
                           />
                         )}
                         {post.media_url && !ytId && post.post_type !== 'image' && (

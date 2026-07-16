@@ -154,6 +154,10 @@ CREATE POLICY "Owner delete avatars" ON storage.objects
 -- 11b. Imágenes de publicaciones (posts con foto)
 -- ============================================================
 
+-- Varias imágenes por publicación (carrusel). `media_url` sigue guardando la
+-- primera imagen (compat / miniaturas); `media_urls` guarda todas.
+ALTER TABLE public.posts ADD COLUMN IF NOT EXISTS media_urls text[];
+
 -- Bucket público para imágenes de publicaciones
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('posts', 'posts', true)
