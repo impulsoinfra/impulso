@@ -637,6 +637,9 @@ function DashboardContent() {
                           <div>
                             <Label htmlFor="post-url" className={labelCls}>URL</Label>
                             <input id="post-url" value={postMediaUrl} onChange={(e) => setPostMediaUrl(e.target.value)} placeholder="https://..." className={inputCls} />
+                            <p className="text-[10px] text-muted2 mt-1">
+                              YouTube, Vimeo, Spotify y SoundCloud se reproducen embebidos. Instagram, TikTok y X muestran una tarjeta con link.
+                            </p>
                           </div>
                         )}
                         {postMsg && <Feedback ok={postMsg.ok} text={postMsg.text} />}

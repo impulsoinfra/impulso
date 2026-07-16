@@ -3,22 +3,16 @@ import { createServerClient } from '@/lib/supabase-server'
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 import { ProfileBanner } from '@/components/profile/profile-banner'
-import { Globe, Calendar, FileText, ExternalLink, Heart } from 'lucide-react'
+import { Globe, Calendar, FileText, Heart } from 'lucide-react'
 import { ImpulsarButton } from '@/components/support/impulsar-button'
 import { ShareMenu, type ShareOption } from '@/components/share/share-menu'
 import { PostCarousel } from '@/components/posts/post-carousel'
+import { MediaEmbed } from '@/components/posts/media-embed'
 import { getAdminClient } from '@/lib/supabase-admin'
 import { getSupportMessages, type SupportMessage } from '@/lib/support'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import type { Metadata } from 'next'
-
-function getYouTubeId(url: string): string | null {
-  const match = url.match(
-    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
-  )
-  return match ? match[1] : null
-}
 
 // Left-border accent per content type (style guide §4)
 function postAccent(postType: string): string {
@@ -211,7 +205,6 @@ export default async function CreatorProfilePage({ params }: Props) {
                 <div className="space-y-2.5">
                   {posts.map((post) => {
                     const accent = postAccent(post.post_type)
-                    const ytId = post.media_url ? getYouTubeId(post.media_url) : null
                     return (
                       <div
                         key={post.id}
@@ -225,33 +218,14 @@ export default async function CreatorProfilePage({ params }: Props) {
                           <p className="text-[12px] text-txt2 leading-relaxed mb-2 whitespace-pre-wrap">{post.content}</p>
                         )}
 
-                        {ytId && (
-                          <div className="rounded-lg overflow-hidden aspect-video mb-2">
-                            <iframe
-                              src={`https://www.youtube.com/embed/${ytId}`}
-                              title={post.title ?? 'Video'}
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                              allowFullScreen
-                              className="w-full h-full"
-                            />
-                          </div>
-                        )}
-                        {post.post_type === 'image' && !ytId && (post.media_urls?.length || post.media_url) && (
+                        {post.post_type === 'image' && (post.media_urls?.length || post.media_url) && (
                           <PostCarousel
                             images={post.media_urls?.length ? post.media_urls : post.media_url ? [post.media_url] : []}
                             alt={post.title ?? undefined}
                           />
                         )}
-                        {post.media_url && !ytId && post.post_type !== 'image' && (
-                          <a
-                            href={post.media_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 mb-2 text-rosa hover:text-rosa-hover text-[12px] font-medium"
-                          >
-                            <ExternalLink className="w-3.5 h-3.5" />
-                            Ver contenido
-                          </a>
+                        {post.post_type !== 'image' && post.media_url && (
+                          <MediaEmbed url={post.media_url} title={post.title} />
                         )}
 
                         <div className="flex justify-between items-center">
