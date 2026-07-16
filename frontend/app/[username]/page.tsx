@@ -135,8 +135,9 @@ export default async function CreatorProfilePage({ params }: Props) {
       {/* Cover banner (image or brand pattern) + owner camera */}
       <ProfileBanner profileId={profile.id} bannerUrl={profile.banner_url ?? null} />
 
-      {/* Identity block — crema, avatar overlaps the banner above */}
-      <section className="bg-crema">
+      {/* Profile body — identity + content in one 2-column layout so the goal/about
+          sidebar rises next to the name instead of leaving an empty gap. */}
+      <section className="bg-crema pb-12">
         <div className="wrap">
           <div className="max-w-[960px] mx-auto relative">
             {/* Avatar overlapping the banner's bottom edge */}
@@ -167,9 +168,14 @@ export default async function CreatorProfilePage({ params }: Props) {
               />
             </div>
 
-            {/* Name / handle / badge / bio / meta */}
-            <div className="mt-2 lg:mt-10 pb-3">
-              <h1 className="disp text-tinta text-[22px] md:text-[26px] lg:text-[32px] leading-none mb-1">{profile.name}</h1>
+            {/* Main (name + posts) + sidebar (goal + about) side by side; the sidebar
+                rises to the top instead of leaving an empty gap next to the name. */}
+            <div className="grid gap-x-6 gap-y-6 items-start mt-2 lg:mt-4 lg:grid-cols-[minmax(0,1fr)_300px]">
+              {/* MAIN COLUMN — name + posts */}
+              <div className="min-w-0 lg:pt-3">
+                {/* Name / handle / badge / bio / meta */}
+                <div className="pb-4">
+                  <h1 className="disp text-tinta text-[22px] md:text-[26px] lg:text-[32px] leading-none mb-1">{profile.name}</h1>
               <p className="text-txt2 text-[13px] lg:text-[15px] mb-2">@{username}</p>
               {profile.creator_type && (
                 <span className="inline-block bg-naranja text-tinta text-[10px] font-bold uppercase tracking-wide px-2.5 py-[3px] rounded-full mb-2.5">
@@ -197,54 +203,8 @@ export default async function CreatorProfilePage({ params }: Props) {
                 </span>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Content — posts (main) + goal/about (sidebar). Mobile order: goal → posts → about. */}
-      <section className="bg-crema pb-12">
-        <div className="wrap">
-          <div className="grid gap-4 items-start max-w-[960px] mx-auto lg:grid-cols-[minmax(0,1fr)_300px] lg:grid-rows-[auto_1fr]">
-            {/* Goal — DOM first (mobile top); desktop right column, row 1 */}
-            {goal && (
-              <div className="lg:col-start-2 lg:row-start-1">
-                <div className="bg-white border-2 border-tinta rounded-xl overflow-hidden">
-                  <div className="h-1.5 bg-naranja" />
-                  <div className="p-4">
-                    <p className="text-naranja text-[10px] font-bold uppercase tracking-[0.06em] mb-1.5">
-                      Meta actual
-                    </p>
-                    <h3 className="disp text-tinta text-[15px] leading-tight uppercase mb-2">{goal.title}</h3>
-                    {goal.description && (
-                      <p className="text-[12px] text-txt2 leading-relaxed mb-3">{goal.description}</p>
-                    )}
-                    <div className="h-1.5 bg-track rounded-full overflow-hidden mb-2">
-                      <div className="h-full bg-rosa" style={{ width: `${goalPercent}%` }} />
-                    </div>
-                    <div className="mb-3">
-                      <span className="disp text-tinta text-[20px] block leading-none mb-0.5">{goalPercent}%</span>
-                      <span className="text-[10px] text-txt2">
-                        ${Number(goal.current_amount).toLocaleString('es-AR')} de ${Number(goal.target_amount).toLocaleString('es-AR')}
-                      </span>
-                    </div>
-                    <div className="[&>button]:w-full [&>button]:justify-center [&>button]:py-2.5">
-                      <ImpulsarButton
-                        creatorId={profile.id}
-                        creatorName={profile.name}
-                        creatorUsername={username}
-                        variant="primary"
-                        label="Apoyar esta meta"
-                        creatorConnected={profile.mp_connected}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Posts — DOM second; desktop left column spanning both rows */}
-            <div className={`lg:col-start-1 lg:row-start-1 ${goal ? 'lg:row-span-2' : ''}`}>
-              <h2 className="disp text-tinta text-[16px] uppercase mb-3">Publicaciones</h2>
+                {/* Posts */}
+                <h2 className="disp text-tinta text-[16px] uppercase mb-3">Publicaciones</h2>
 
               {posts && posts.length > 0 ? (
                 <div className="space-y-2.5">
@@ -325,27 +285,62 @@ export default async function CreatorProfilePage({ params }: Props) {
                   </p>
                 </div>
               )}
-            </div>
+              </div>
 
-            {/* About — DOM third; desktop right column, row 2 (or row 1 if no goal) */}
-            <div className={`lg:col-start-2 ${goal ? 'lg:row-start-2' : 'lg:row-start-1'}`}>
-              <div className="bg-white border border-borde rounded-[10px] p-3.5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.06em] text-txt2 mb-2.5">Acerca de</p>
-                <div className="flex justify-between py-1.5 border-b border-[rgba(27,26,46,0.08)]">
-                  <span className="text-[12px] text-txt2">Publicaciones</span>
-                  <span className="text-[12px] font-semibold text-tinta">{posts?.length ?? 0}</span>
-                </div>
-                {profile.creator_type && (
-                  <div className="flex justify-between py-1.5 border-b border-[rgba(27,26,46,0.08)]">
-                    <span className="text-[12px] text-txt2">Tipo</span>
-                    <span className="text-[12px] font-semibold text-rosa">{profile.creator_type}</span>
+              {/* SIDEBAR — goal + about, rises to the top beside the name */}
+              <div className="space-y-4 lg:pt-3">
+                {goal && (
+                  <div className="bg-white border-2 border-tinta rounded-xl overflow-hidden">
+                    <div className="h-1.5 bg-naranja" />
+                    <div className="p-4">
+                      <p className="text-naranja text-[10px] font-bold uppercase tracking-[0.06em] mb-1.5">
+                        Meta actual
+                      </p>
+                      <h3 className="disp text-tinta text-[15px] leading-tight uppercase mb-2">{goal.title}</h3>
+                      {goal.description && (
+                        <p className="text-[12px] text-txt2 leading-relaxed mb-3">{goal.description}</p>
+                      )}
+                      <div className="h-1.5 bg-track rounded-full overflow-hidden mb-2">
+                        <div className="h-full bg-rosa" style={{ width: `${goalPercent}%` }} />
+                      </div>
+                      <div className="mb-3">
+                        <span className="disp text-tinta text-[20px] block leading-none mb-0.5">{goalPercent}%</span>
+                        <span className="text-[10px] text-txt2">
+                          ${Number(goal.current_amount).toLocaleString('es-AR')} de ${Number(goal.target_amount).toLocaleString('es-AR')}
+                        </span>
+                      </div>
+                      <div className="[&>button]:w-full [&>button]:justify-center [&>button]:py-2.5">
+                        <ImpulsarButton
+                          creatorId={profile.id}
+                          creatorName={profile.name}
+                          creatorUsername={username}
+                          variant="primary"
+                          label="Apoyar esta meta"
+                          creatorConnected={profile.mp_connected}
+                        />
+                      </div>
+                    </div>
                   </div>
                 )}
-                <div className="flex justify-between py-1.5">
-                  <span className="text-[12px] text-txt2">Desde</span>
-                  <span className="text-[12px] font-semibold text-tinta">
-                    {format(new Date(profile.created_at), 'MMM yyyy', { locale: es })}
-                  </span>
+
+                <div className="bg-white border border-borde rounded-[10px] p-3.5">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.06em] text-txt2 mb-2.5">Acerca de</p>
+                  <div className="flex justify-between py-1.5 border-b border-[rgba(27,26,46,0.08)]">
+                    <span className="text-[12px] text-txt2">Publicaciones</span>
+                    <span className="text-[12px] font-semibold text-tinta">{posts?.length ?? 0}</span>
+                  </div>
+                  {profile.creator_type && (
+                    <div className="flex justify-between py-1.5 border-b border-[rgba(27,26,46,0.08)]">
+                      <span className="text-[12px] text-txt2">Tipo</span>
+                      <span className="text-[12px] font-semibold text-rosa">{profile.creator_type}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between py-1.5">
+                    <span className="text-[12px] text-txt2">Desde</span>
+                    <span className="text-[12px] font-semibold text-tinta">
+                      {format(new Date(profile.created_at), 'MMM yyyy', { locale: es })}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
