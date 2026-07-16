@@ -2,7 +2,11 @@ import Link from 'next/link'
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 import { ROUTES } from '@/lib/constants'
+import { createServerClient } from '@/lib/supabase-server'
 import { Camera, Feather, Target } from 'lucide-react'
+
+// Re-fetch the featured creators every 5 min so new creators appear without a redeploy.
+export const revalidate = 300
 
 const LINEUP = [
   { label: 'DJS', color: 'text-tinta' },
@@ -21,10 +25,11 @@ const STEPS = [
   { n: 3, title: 'Recibí apoyo en pesos', text: 'Tus fans te apoyan vía MercadoPago, directo a tu cuenta.' },
 ]
 
-const FEATURED = [
-  { name: 'Vale Ilustra', meta: 'Arte · Córdoba', pct: 71, current: 85000, target: 120000, accent: '#F0355C', btnBorder: '#F0355C', btnText: '#F0355C' },
-  { name: 'Mati Foto', meta: 'Fotografía · Rosario', pct: 80, current: 48000, target: 60000, accent: '#FF9D3D', btnBorder: '#FF9D3D', btnText: '#994f0a' },
-  { name: 'DJ Pablo', meta: 'Música · Buenos Aires', pct: 70, current: 140000, target: 200000, accent: '#1B1A2E', btnBorder: '#1B1A2E', btnText: '#1B1A2E' },
+// Accent colors cycled across the featured creator cards (rosa / naranja / tinta).
+const FEATURED_COLORS = [
+  { accent: '#F0355C', btnBorder: '#F0355C', btnText: '#F0355C' },
+  { accent: '#FF9D3D', btnBorder: '#FF9D3D', btnText: '#994f0a' },
+  { accent: '#1B1A2E', btnBorder: '#1B1A2E', btnText: '#1B1A2E' },
 ]
 
 // Hero waveform bars (height %, naranja accent on the tall ones)
@@ -33,7 +38,35 @@ const WAVE = [
   { h: 100, n: true }, { h: 65, n: false }, { h: 45, n: false }, { h: 75, n: true },
 ]
 
-export default function ImpulsoLanding() {
+export default async function ImpulsoLanding() {
+  // Real featured creators: artists with an active goal (same source as Discover).
+  const supabase = createServerClient()
+  const { data: creatorRows } = await supabase
+    .from('profiles')
+    .select('name, username, creator_type, location, goals!inner(title, target_amount, current_amount, is_active)')
+    .eq('role', 'artist')
+    .eq('goals.is_active', true)
+    .not('username', 'is', null)
+    .limit(12)
+
+  const featured = (creatorRows ?? [])
+    .map((p: any) => {
+      const g = Array.isArray(p.goals) ? p.goals[0] : p.goals
+      const target = Number(g?.target_amount ?? 0)
+      const current = Number(g?.current_amount ?? 0)
+      return {
+        name: p.name as string,
+        username: p.username as string,
+        meta: [p.creator_type, p.location].filter(Boolean).join(' · '),
+        current,
+        target,
+        pct: target > 0 ? Math.min(Math.round((current / target) * 100), 100) : 0,
+      }
+    })
+    .sort((a, b) => b.pct - a.pct)
+    .slice(0, 3)
+    .map((c, i) => ({ ...c, ...FEATURED_COLORS[i % FEATURED_COLORS.length] }))
+
   return (
     <div className="min-h-screen bg-crema">
       <Header />
@@ -52,7 +85,7 @@ export default function ImpulsoLanding() {
                 QUE MERECÉS.
               </h1>
               <p className="text-[rgba(251,247,242,0.65)] text-[15px] leading-relaxed max-w-md mb-6">
-                Compartí tu trabajo, creá una meta y recibí donaciones de tu comunidad en pesos, directo a tu cuenta.
+                Compartí tu trabajo, creá una meta y recibí el apoyo de tu comunidad en pesos, directo a tu cuenta al instante.
               </p>
               <div className="flex flex-wrap gap-2.5 mb-3">
                 <Link
@@ -102,7 +135,7 @@ export default function ImpulsoLanding() {
                   <div className="flex items-center gap-2.5 mb-3">
                     <div className="w-8 h-8 rounded-full bg-tinta shrink-0" />
                     <div>
-                      <p className="text-[13px] font-semibold text-tinta leading-tight">DJ Pablo</p>
+                      <p className="text-[13px] font-semibold text-tinta leading-tight">DJ Nova</p>
                       <p className="text-[11px] text-txt2 leading-tight">Música · Buenos Aires</p>
                     </div>
                   </div>
@@ -186,41 +219,45 @@ export default function ImpulsoLanding() {
         </div>
       </section>
 
-      {/* Creadores destacados */}
-      <section id="creadores" className="bg-crema pb-12">
-        <div className="wrap">
-          <div className="flex justify-between items-baseline mb-4">
-            <h2 className="disp text-tinta text-[24px]">Creadores destacados</h2>
-            <Link href={ROUTES.DISCOVER} className="text-xs font-semibold text-rosa hover:text-rosa-hover">
-              Ver todos →
-            </Link>
-          </div>
-          <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
-            {FEATURED.map((c) => (
-              <div key={c.name} className="bg-white border border-borde rounded-[10px] overflow-hidden">
-                <div className="h-1" style={{ background: c.accent }} />
-                <div className="p-3">
-                  <p className="text-[13px] font-semibold text-tinta mb-0.5">{c.name}</p>
-                  <p className="text-[11px] text-txt2 mb-2.5">{c.meta}</p>
-                  <div className="h-1.5 bg-track rounded-full overflow-hidden mb-1.5">
-                    <div className="h-full" style={{ width: `${c.pct}%`, background: c.accent }} />
+      {/* Creadores destacados — real creators with an active goal */}
+      {featured.length > 0 && (
+        <section id="creadores" className="bg-crema pb-12">
+          <div className="wrap">
+            <div className="flex justify-between items-baseline mb-4">
+              <h2 className="disp text-tinta text-[24px]">Creadores destacados</h2>
+              <Link href={ROUTES.DISCOVER} className="text-xs font-semibold text-rosa hover:text-rosa-hover">
+                Ver todos →
+              </Link>
+            </div>
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
+              {featured.map((c) => (
+                <div key={c.username} className="bg-white border border-borde rounded-[10px] overflow-hidden">
+                  <div className="h-1" style={{ background: c.accent }} />
+                  <div className="p-3">
+                    <Link href={`/${c.username}`} className="block text-[13px] font-semibold text-tinta mb-0.5 hover:text-rosa transition-colors truncate">
+                      {c.name}
+                    </Link>
+                    <p className="text-[11px] text-txt2 mb-2.5 truncate">{c.meta}</p>
+                    <div className="h-1.5 bg-track rounded-full overflow-hidden mb-1.5">
+                      <div className="h-full" style={{ width: `${c.pct}%`, background: c.accent }} />
+                    </div>
+                    <p className="text-[10px] text-txt2 mb-2.5">
+                      ${c.current.toLocaleString('es-AR')} / ${c.target.toLocaleString('es-AR')}
+                    </p>
+                    <Link
+                      href={`/${c.username}`}
+                      className="block text-center w-full rounded-md py-1.5 text-xs font-semibold border transition-colors hover:bg-black/[0.03]"
+                      style={{ borderColor: c.btnBorder, color: c.btnText }}
+                    >
+                      Apoyar
+                    </Link>
                   </div>
-                  <p className="text-[10px] text-txt2 mb-2.5">
-                    ${c.current.toLocaleString('es-AR')} / ${c.target.toLocaleString('es-AR')}
-                  </p>
-                  <Link
-                    href={ROUTES.DISCOVER}
-                    className="block text-center w-full rounded-md py-1.5 text-xs font-semibold border transition-colors hover:bg-black/[0.03]"
-                    style={{ borderColor: c.btnBorder, color: c.btnText }}
-                  >
-                    Apoyar
-                  </Link>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* CTA */}
       <section className="bg-tinta py-12">
