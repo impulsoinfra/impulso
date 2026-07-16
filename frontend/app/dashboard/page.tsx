@@ -18,7 +18,7 @@ import {
 import {
   FileText, Target, User, Plus, Trash2, ExternalLink,
   Loader2, CheckCircle, AlertCircle, Camera, Pencil,
-  DollarSign, Wallet, Upload, Heart,
+  DollarSign, Wallet, Upload, Heart, Star,
 } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -112,6 +112,8 @@ function DashboardContent() {
   const [profileLocation, setProfileLocation] = useState('')
   const [savingProfile, setSavingProfile] = useState(false)
   const [profileMsg, setProfileMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [becomingCreator, setBecomingCreator] = useState(false)
+  const [becomeMsg, setBecomeMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
   // MercadoPago connection
   const [connectingMp, setConnectingMp] = useState(false)
@@ -381,6 +383,25 @@ function DashboardContent() {
       setPostMsg({ ok: false, text: 'No se pudo subir alguna imagen. Intentá de nuevo.' })
     } finally {
       setUploadingPostImage(false)
+    }
+  }
+
+  // Upgrade a follower account to a creator account, then send them to onboarding
+  // to pick a username + category (RLS lets a user update their own profile row).
+  const handleBecomeCreator = async () => {
+    const client = getClient()
+    if (!user || !client) return
+    setBecomingCreator(true)
+    setBecomeMsg(null)
+    try {
+      const { error } = await client.from('profiles').update({ role: 'artist' }).eq('id', user.id)
+      if (error) throw error
+      await refreshProfile()
+      router.push('/onboarding')
+    } catch (err) {
+      console.error('[become creator]', err)
+      setBecomeMsg({ ok: false, text: 'No se pudo cambiar la cuenta. Intentá de nuevo.' })
+      setBecomingCreator(false)
     }
   }
 
@@ -986,11 +1007,35 @@ function DashboardContent() {
         )}
 
         {!isCreator && (
-          <div className="bg-white border border-borde rounded-xl p-6 text-center max-w-md">
-            <p className="text-4xl mb-3">❤️</p>
-            <h2 className="disp text-tinta text-lg uppercase mb-2">Bienvenido, {profile.name}!</h2>
-            <p className="text-txt2 text-sm mb-5">Tu cuenta de seguidor está lista. Explorá creadores y apoyá su trabajo.</p>
-            <Link href="/discover" className={`w-full ${primaryBtn}`}>Explorar creadores</Link>
+          <div className="max-w-md space-y-4">
+            <div className="bg-white border border-borde rounded-xl p-6 text-center">
+              <p className="text-4xl mb-3">❤️</p>
+              <h2 className="disp text-tinta text-lg uppercase mb-2">¡Bienvenido, {profile.name}!</h2>
+              <p className="text-txt2 text-sm mb-5">Tu cuenta de seguidor está lista. Explorá creadores y apoyá su trabajo.</p>
+              <Link href="/discover" className={`w-full ${primaryBtn}`}>Explorar creadores</Link>
+            </div>
+
+            {/* Become a creator */}
+            <div className="bg-tinta rounded-xl p-5 relative overflow-hidden">
+              <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full" style={{ background: 'rgba(255,157,61,0.18)' }} />
+              <div className="relative">
+                <p className="text-crema font-semibold text-sm mb-1 flex items-center gap-2">
+                  <Star className="w-4 h-4 text-naranja shrink-0" /> ¿Querés recibir apoyo?
+                </p>
+                <p className="text-[rgba(251,247,242,0.65)] text-[12.5px] mb-4">
+                  Convertí tu cuenta en creador para publicar tu trabajo, crear metas y recibir el apoyo de tu comunidad.
+                </p>
+                {becomeMsg && <div className="mb-3"><Feedback ok={becomeMsg.ok} text={becomeMsg.text} /></div>}
+                <button
+                  onClick={handleBecomeCreator}
+                  disabled={becomingCreator}
+                  className="inline-flex items-center gap-2 bg-rosa hover:bg-rosa-hover text-white rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-70"
+                >
+                  {becomingCreator && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Convertirme en creador
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </main>
