@@ -20,7 +20,7 @@ const LINEUP = [
 ]
 
 const STEPS = [
-  { n: 1, title: 'Creá tu perfil', text: 'Elegí tu username, contá quién sos y subí tu foto.' },
+  { n: 1, title: 'Creá tu perfil', text: 'Elegí tu nombre de usuario, contá quién sos y subí tu foto.' },
   { n: 2, title: 'Compartí tu trabajo', text: 'Publicá fotos, audio o texto. Tu comunidad lo ve todo en un solo lugar.' },
   { n: 3, title: 'Recibí apoyo en pesos', text: 'Tus fans te apoyan vía MercadoPago, directo a tu cuenta.' },
 ]

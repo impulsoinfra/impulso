@@ -97,7 +97,7 @@ function OnboardingContent() {
         <div className="w-full max-w-[620px] bg-white border border-borde rounded-2xl overflow-hidden flex">
           <AuthBrandPanel
             title="CASI LISTO"
-            subtitle="Elegí tu username: es tu dirección en Impulso y donde tu comunidad te va a apoyar."
+            subtitle="Elegí tu nombre de usuario: es tu dirección en Impulso y donde tu comunidad te va a apoyar."
           />
 
           <div className="flex-1 p-7">
