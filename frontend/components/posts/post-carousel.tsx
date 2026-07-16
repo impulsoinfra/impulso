@@ -19,7 +19,7 @@ export function PostCarousel({ images, alt }: { images: string[]; alt?: string }
       <img
         src={images[0]}
         alt={alt ?? 'Imagen de la publicación'}
-        className="w-full h-auto rounded-lg border border-borde mb-2"
+        className="w-full sm:max-w-[420px] h-auto rounded-lg border border-borde mb-2"
       />
     )
   }
@@ -38,7 +38,7 @@ export function PostCarousel({ images, alt }: { images: string[]; alt?: string }
   }
 
   return (
-    <div className="relative mb-2">
+    <div className="relative mb-2 sm:max-w-[420px]">
       <div
         ref={scrollerRef}
         onScroll={onScroll}
