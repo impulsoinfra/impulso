@@ -11,6 +11,7 @@ import {
   Avatar,
   type ShareFormat,
 } from '@/lib/og/shared'
+import { getYouTubeId } from '@/lib/media-embed'
 
 export const runtime = 'edge'
 export const revalidate = 0
@@ -30,7 +31,7 @@ export async function GET(req: Request, { params }: Params) {
 
   const { data: post } = await supabase
     .from('posts')
-    .select('title, content, media_url, post_type, created_at, creator_id')
+    .select('title, content, media_url, media_urls, post_type, created_at, creator_id')
     .eq('id', postId)
     .single()
 
@@ -58,6 +59,22 @@ export async function GET(req: Request, { params }: Params) {
   const username = profile?.username ?? ''
   const handle = [username ? `@${username}` : '', profile?.creator_type ?? ''].filter(Boolean).join(' · ')
 
+  // Resolve the media to show: the actual image for image posts, or the YouTube
+  // thumbnail for video links. Other link types fall back to the text card.
+  let mediaImageUrl: string | null = null
+  let mediaKind: 'image' | 'video' | null = null
+  const firstImage = (post.media_urls && post.media_urls[0]) || post.media_url
+  if (post.post_type === 'image' && firstImage) {
+    mediaImageUrl = firstImage
+    mediaKind = 'image'
+  } else if (post.media_url) {
+    const yt = getYouTubeId(post.media_url)
+    if (yt) {
+      mediaImageUrl = `https://img.youtube.com/vi/${yt}/hqdefault.jpg`
+      mediaKind = 'video'
+    }
+  }
+
   const d: PostData = {
     name: profile?.name ?? '',
     handle,
@@ -67,6 +84,8 @@ export async function GET(req: Request, { params }: Params) {
     content: post.content ?? '',
     date,
     profileUrl: username ? `tuimpulso.ar/${username}` : 'tuimpulso.ar',
+    mediaImageUrl,
+    mediaKind,
   }
 
   const element = format === 'square' ? <PostSquare {...d} /> : <PostStory {...d} />
@@ -82,6 +101,8 @@ interface PostData {
   content: string
   date: string
   profileUrl: string
+  mediaImageUrl: string | null
+  mediaKind: 'image' | 'video' | null
 }
 
 // Rosa for audio, naranja for everything else (both visible on the dark bg)
@@ -158,6 +179,29 @@ function TextCard(d: PostData, excerptMax: number) {
   )
 }
 
+// Shows the actual post image (or the video thumbnail) + the title as a caption.
+function ImageCard(d: PostData, height: number, titleFont: number, titleMax: number) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', marginTop: 32 }}>
+      <div style={{ display: 'flex', position: 'relative', width: '100%', height, borderRadius: 18, overflow: 'hidden', border: '1px solid rgba(251,247,242,0.12)' }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={d.mediaImageUrl as string} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        {d.mediaKind === 'video' ? (
+          <div style={{ position: 'absolute', top: 20, left: 20, display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(0,0,0,0.6)', borderRadius: 999, padding: '10px 20px' }}>
+            <div style={{ display: 'flex', width: 0, height: 0, borderTop: '10px solid transparent', borderBottom: '10px solid transparent', borderLeft: '16px solid #fff' }} />
+            <div style={{ display: 'flex', fontSize: 26, fontWeight: 600, color: '#fff' }}>VIDEO</div>
+          </div>
+        ) : null}
+      </div>
+      {d.title ? (
+        <div style={{ display: 'flex', fontSize: titleFont, fontWeight: 600, color: COLORS.cream, marginTop: 24 }}>
+          {truncate(d.title, titleMax)}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 function Footer(d: PostData, withLabel: boolean) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
@@ -211,6 +255,8 @@ function PostStory(d: PostData) {
               <div style={{ display: 'flex', fontSize: 28, color: 'rgba(251,247,242,0.75)' }}>♫ Escuchalo completo en Impulso</div>
             </div>
           </div>
+        ) : d.mediaImageUrl ? (
+          ImageCard(d, 640, 42, 50)
         ) : (
           TextCard(d, 200)
         )}
@@ -257,6 +303,8 @@ function PostSquare(d: PostData) {
               {truncate(d.title || 'Nuevo audio', 34)}
             </div>
           </div>
+        ) : d.mediaImageUrl ? (
+          ImageCard(d, 400, 34, 40)
         ) : (
           TextCard(d, 120)
         )}
