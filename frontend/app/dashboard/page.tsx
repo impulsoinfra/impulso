@@ -18,7 +18,7 @@ import {
 import {
   FileText, Target, User, Plus, Trash2, ExternalLink,
   Loader2, CheckCircle, AlertCircle, Camera, Pencil,
-  DollarSign, Wallet, Upload, Heart, Star,
+  DollarSign, Wallet, Upload, Heart, Star, Eye,
 } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -472,17 +472,30 @@ function DashboardContent() {
             </p>
           </div>
           {isCreator && (
-            <button
-              type="button"
-              onClick={() => setTab('profile')}
-              className={`shrink-0 inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-[13px] font-semibold transition-colors ${
-                tab === 'profile'
-                  ? 'border-rosa text-rosa bg-rosa/[0.06]'
-                  : 'border-borde text-tinta hover:bg-tinta/[0.04]'
-              }`}
-            >
-              <User className="w-4 h-4" /> Mi perfil
-            </button>
+            <div className="flex flex-col items-stretch gap-2 shrink-0">
+              {/* View public profile — mobile only (desktop already has it in the top nav) */}
+              {username && (
+                <a
+                  href={`/${username}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="md:hidden inline-flex items-center justify-center gap-1.5 rounded-lg border border-borde text-tinta hover:bg-tinta/[0.04] px-3 py-2 text-[13px] font-semibold transition-colors"
+                >
+                  <Eye className="w-4 h-4" /> Ver perfil
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => setTab('profile')}
+                className={`inline-flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-[13px] font-semibold transition-colors ${
+                  tab === 'profile'
+                    ? 'border-rosa text-rosa bg-rosa/[0.06]'
+                    : 'border-borde text-tinta hover:bg-tinta/[0.04]'
+                }`}
+              >
+                <User className="w-4 h-4" /> Mi perfil
+              </button>
+            </div>
           )}
         </div>
 
