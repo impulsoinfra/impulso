@@ -306,6 +306,7 @@ export default async function CreatorProfilePage({ params }: Props) {
                           options={metaShareOptions}
                           triggerLabel="Compartir meta"
                           align="responsive"
+                          side="top"
                           triggerClassName="w-full inline-flex items-center justify-center gap-2 border border-borde text-tinta hover:bg-tinta/[0.04] rounded-lg px-4 py-2.5 text-[13px] font-semibold transition-colors"
                         />
                       </div>

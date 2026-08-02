@@ -78,18 +78,27 @@ const ALIGN_CLASS = {
   responsive: 'left-0 lg:left-auto lg:right-0',
 } as const
 
+// Which way the menu opens. Use 'top' when the trigger sits inside an
+// `overflow-hidden` container that would clip a downward menu (e.g. the goal card).
+const SIDE_CLASS = {
+  bottom: 'top-full mt-2',
+  top: 'bottom-full mb-2',
+} as const
+
 export function ShareMenu({
   options,
   triggerLabel = 'Compartir',
   triggerClassName,
   compact = false,
   align = 'end',
+  side = 'bottom',
 }: {
   options: ShareOption[]
   triggerLabel?: string
   triggerClassName?: string
   compact?: boolean
   align?: keyof typeof ALIGN_CLASS
+  side?: keyof typeof SIDE_CLASS
 }) {
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
@@ -157,7 +166,7 @@ export function ShareMenu({
       {open && (
         <div
           role="menu"
-          className={`absolute ${ALIGN_CLASS[align]} top-full mt-2 z-50 w-60 rounded-lg border border-borde bg-white shadow-lg py-1`}
+          className={`absolute ${ALIGN_CLASS[align]} ${SIDE_CLASS[side]} z-50 w-60 rounded-lg border border-borde bg-white shadow-lg py-1`}
         >
           <p className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted2">
             Compartir en redes
