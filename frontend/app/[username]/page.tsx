@@ -122,6 +122,12 @@ export default async function CreatorProfilePage({ params }: Props) {
     { key: 'story', label: 'Historia', hint: '1080×1920', url: `/api/share/post/${postId}`, filename: 'impulso-publicacion-historia.png' },
     { key: 'square', label: 'Cuadrado (feed)', hint: '1080×1080', url: `/api/share/post/${postId}?format=square`, filename: 'impulso-publicacion-cuadrado.png' },
   ]
+  // Share the goal itself: link (OG preview) + the meta images for social.
+  const metaShareOptions: ShareOption[] = [
+    { key: 'meta-link', kind: 'link', label: 'Copiar link de la meta', hint: `tuimpulso.ar/${username}`, link: `/${username}` },
+    { key: 'meta-story', label: 'Historia', hint: '1080×1920', url: `/api/share/meta/${username}`, filename: 'impulso-meta-historia.png' },
+    { key: 'meta-feed', label: 'Feed', hint: '1080×1350', url: `/api/share/meta/${username}?format=post`, filename: 'impulso-meta-feed.png' },
+  ]
 
   return (
     <div className="min-h-screen bg-crema">
@@ -232,8 +238,12 @@ export default async function CreatorProfilePage({ params }: Props) {
                           <span className="text-[10px] text-muted2">
                             {format(new Date(post.created_at), "d MMM yyyy", { locale: es })}
                           </span>
-                          <div className="flex items-center gap-1 shrink-0">
-                            <ShareMenu options={postShareOptions(post.id)} compact />
+                          <div className="flex items-center gap-2 shrink-0">
+                            <ShareMenu
+                              options={postShareOptions(post.id)}
+                              triggerLabel="Compartir"
+                              triggerClassName="inline-flex items-center gap-1.5 text-muted2 hover:text-rosa text-[12px] font-medium transition-colors"
+                            />
                             <ImpulsarButton
                               creatorId={profile.id}
                               creatorName={profile.name}
@@ -289,6 +299,14 @@ export default async function CreatorProfilePage({ params }: Props) {
                           variant="primary"
                           label="Apoyar esta meta"
                           creatorConnected={profile.mp_connected}
+                        />
+                      </div>
+                      <div className="mt-2 [&>div]:block [&>div>button]:w-full">
+                        <ShareMenu
+                          options={metaShareOptions}
+                          triggerLabel="Compartir meta"
+                          align="responsive"
+                          triggerClassName="w-full inline-flex items-center justify-center gap-2 border border-borde text-tinta hover:bg-tinta/[0.04] rounded-lg px-4 py-2.5 text-[13px] font-semibold transition-colors"
                         />
                       </div>
                     </div>
