@@ -811,7 +811,7 @@ function DashboardContent() {
                             <p className="text-[11px] text-muted2 leading-tight">
                               Compartí tu meta en Instagram y sumá apoyos.
                             </p>
-                            <ShareMenu options={metaShareOptions} triggerLabel="Compartir" />
+                            <ShareMenu options={metaShareOptions} triggerLabel="Compartir" side="top" />
                           </div>
                         )}
                       </div>
