@@ -84,6 +84,8 @@ function DashboardContent() {
   const [goal, setGoal] = useState<Goal | null>(null)
   const [supports, setSupports] = useState<SupportMessage[]>([])
   const [loadingData, setLoadingData] = useState(true)
+  // Active dashboard tab (controlled so the header "Mi perfil" button can open it)
+  const [tab, setTab] = useState('posts')
 
   // Post form
   const [postTitle, setPostTitle] = useState('')
@@ -460,11 +462,29 @@ function DashboardContent() {
       <Header />
 
       <main className="wrap py-8 flex-1 w-full">
-        {/* Page header */}
-        <h1 className="disp text-tinta text-[24px] uppercase mb-0.5">Mi panel</h1>
-        <p className="text-txt2 text-[13px] mb-5">
-          {isCreator ? 'Gestioná tu contenido y tus metas' : 'Tu espacio en Impulso'}
-        </p>
+        {/* Page header — "Mi perfil" lives here (always visible) instead of inside the tabs,
+            where a 4th tab got cut off / unreachable on mobile. */}
+        <div className="flex items-start justify-between gap-3 mb-5">
+          <div>
+            <h1 className="disp text-tinta text-[24px] uppercase mb-0.5">Mi panel</h1>
+            <p className="text-txt2 text-[13px]">
+              {isCreator ? 'Gestioná tu contenido y tus metas' : 'Tu espacio en Impulso'}
+            </p>
+          </div>
+          {isCreator && (
+            <button
+              type="button"
+              onClick={() => setTab('profile')}
+              className={`shrink-0 inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-[13px] font-semibold transition-colors ${
+                tab === 'profile'
+                  ? 'border-rosa text-rosa bg-rosa/[0.06]'
+                  : 'border-borde text-tinta hover:bg-tinta/[0.04]'
+              }`}
+            >
+              <User className="w-4 h-4" /> Mi perfil
+            </button>
+          )}
+        </div>
 
         {isCreator && (
           <>
@@ -560,13 +580,16 @@ function DashboardContent() {
               </p>
             )}
 
-            <Tabs defaultValue="posts">
-              <TabsList className="w-full justify-start gap-1 bg-transparent border-b border-borde rounded-none p-0 h-auto mb-6">
+            <Tabs value={tab} onValueChange={setTab}>
+              {/* Content tabs only (Mi perfil moved to the header). Scroll-safe on mobile. */}
+              <TabsList
+                className="w-full justify-start gap-1 bg-transparent border-b border-borde rounded-none p-0 h-auto mb-6 flex-nowrap overflow-x-auto [&::-webkit-scrollbar]:hidden"
+                style={{ scrollbarWidth: 'none' }}
+              >
                 {[
                   { v: 'posts', icon: FileText, label: 'Publicaciones' },
                   { v: 'goal', icon: Target, label: 'Mi meta' },
                   { v: 'apoyos', icon: Heart, label: 'Apoyos' },
-                  { v: 'profile', icon: User, label: 'Mi perfil' },
                 ].map(({ v, icon: Icon, label }) => (
                   <TabsTrigger
                     key={v}
