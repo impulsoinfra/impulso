@@ -24,6 +24,8 @@ import { format, formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { ShareMenu, type ShareOption } from '@/components/share/share-menu'
 import { getSupportMessages, type SupportMessage } from '@/lib/support'
+import { ArticleEditor } from '@/components/posts/article-editor'
+import { articleExcerpt, firstArticleImage, isArticleEmpty, type ArticleDoc } from '@/lib/article'
 
 const CREATOR_TYPES = [
   'DJs', 'Artistas', 'Músicos', 'Fotógrafos', 'Escritores',
@@ -32,6 +34,7 @@ const CREATOR_TYPES = [
 
 const POST_TYPES = [
   { value: 'text', label: 'Texto' },
+  { value: 'article', label: 'Artículo' },
   { value: 'link', label: 'Link / Video' },
   { value: 'image', label: 'Imagen' },
   { value: 'audio', label: 'Audio' },
@@ -44,6 +47,7 @@ interface Post {
   post_type: string
   media_url: string | null
   media_urls: string[] | null
+  body?: ArticleDoc | null
   created_at: string
 }
 
@@ -93,6 +97,9 @@ function DashboardContent() {
   const [postType, setPostType] = useState('text')
   const [postMediaUrl, setPostMediaUrl] = useState('')
   const [postImages, setPostImages] = useState<string[]>([])
+  const [postBody, setPostBody] = useState<ArticleDoc | null>(null)   // article rich body
+  const [postCover, setPostCover] = useState<string | null>(null)     // article cover image
+  const [uploadingCover, setUploadingCover] = useState(false)
   const [savingPost, setSavingPost] = useState(false)
   const [postMsg, setPostMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null)
@@ -129,6 +136,7 @@ function DashboardContent() {
   const bannerInputRef = useRef<HTMLInputElement>(null)
   const avatarInputRef = useRef<HTMLInputElement>(null)
   const postImageInputRef = useRef<HTMLInputElement>(null)
+  const coverInputRef = useRef<HTMLInputElement>(null)
 
   const loadData = useCallback(async () => {
     const client = getClient()
@@ -196,25 +204,38 @@ function DashboardContent() {
     e.preventDefault()
     const client = getClient()
     const isImage = postType === 'image'
-    // Allow a post with just image(s) (no text) or just text.
-    if (!user || !client || (!postContent.trim() && (isImage ? postImages.length === 0 : !postMediaUrl.trim()))) return
+    const isArticle = postType === 'article'
+    if (!user || !client) return
+    // Validate per type: articles need a title + non-empty body; the rest keep the
+    // original rule (some text, or an image / media URL).
+    if (isArticle) {
+      if (!postTitle.trim()) { setPostMsg({ ok: false, text: 'Poné un título al artículo.' }); return }
+      if (isArticleEmpty(postBody)) { setPostMsg({ ok: false, text: 'El artículo está vacío.' }); return }
+    } else if (!postContent.trim() && (isImage ? postImages.length === 0 : !postMediaUrl.trim())) {
+      return
+    }
     setSavingPost(true)
     setPostMsg(null)
     try {
+      // Articles store rich JSON in `body`; `content` holds a plain-text excerpt
+      // (feed preview + social image) and `media_url` the cover.
+      const cover = isArticle ? (postCover ?? firstArticleImage(postBody)) : null
       const { error } = await client.from('posts').insert({
         creator_id: user.id,
         title: postTitle.trim() || null,
-        content: postContent.trim(),
+        content: isArticle ? articleExcerpt(postBody, 240) : postContent.trim(),
         post_type: postType,
+        body: isArticle ? postBody : null,
         // Images go in media_urls (carousel); media_url keeps the first for compat.
-        media_url: isImage ? postImages[0] ?? null : postMediaUrl.trim() || null,
+        media_url: isArticle ? cover : isImage ? postImages[0] ?? null : postMediaUrl.trim() || null,
         media_urls: isImage && postImages.length > 0 ? postImages : null,
       })
       if (error) {
         setPostMsg({ ok: false, text: 'Error al publicar. Intentá de nuevo.' })
       } else {
-        setPostMsg({ ok: true, text: '¡Publicación creada!' })
-        setPostTitle(''); setPostContent(''); setPostMediaUrl(''); setPostImages([]); setPostType('text')
+        setPostMsg({ ok: true, text: isArticle ? '¡Artículo publicado!' : '¡Publicación creada!' })
+        setPostTitle(''); setPostContent(''); setPostMediaUrl(''); setPostImages([])
+        setPostBody(null); setPostCover(null); setPostType('text')
         await loadData()
       }
     } catch (err) {
@@ -353,15 +374,26 @@ function DashboardContent() {
 
   const MAX_POST_IMAGES = 10
 
-  // Uploads one or more post images to the public `posts` bucket (owner-folder RLS,
-  // same as banners/avatars) and appends their public URLs to postImages (carousel).
+  // Uploads a single file to the public `posts` bucket (owner-folder RLS, same as
+  // banners/avatars) and returns its public URL. Shared by the carousel, the
+  // article cover, and the article editor's inline images.
+  const uploadPostFile = async (file: File): Promise<string> => {
+    const client = getClient()
+    if (!user || !client) throw new Error('No autenticado')
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
+    const path = `${user.id}/post-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+    const { error: upErr } = await client.storage.from('posts').upload(path, file, { upsert: true, cacheControl: '3600' })
+    if (upErr) throw upErr
+    return client.storage.from('posts').getPublicUrl(path).data.publicUrl
+  }
+
+  // Uploads one or more post images and appends their public URLs to postImages (carousel).
   const handleUploadPostImages = async (files: File[]) => {
     const client = getClient()
     if (!user || !client) return
-    const picked = files
     const room = MAX_POST_IMAGES - postImages.length
     if (room <= 0) { setPostMsg({ ok: false, text: `Máximo ${MAX_POST_IMAGES} imágenes.` }); return }
-    const batch = picked.slice(0, room)
+    const batch = files.slice(0, room)
 
     setUploadingPostImage(true)
     setPostMsg(null)
@@ -370,11 +402,7 @@ function DashboardContent() {
       for (const file of batch) {
         if (!file.type.startsWith('image/')) { setPostMsg({ ok: false, text: 'Elegí solo imágenes.' }); continue }
         if (file.size > 10 * 1024 * 1024) { setPostMsg({ ok: false, text: 'Cada imagen debe pesar menos de 10MB.' }); continue }
-        const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
-        const path = `${user.id}/post-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
-        const { error: upErr } = await client.storage.from('posts').upload(path, file, { upsert: true, cacheControl: '3600' })
-        if (upErr) throw upErr
-        uploaded.push(client.storage.from('posts').getPublicUrl(path).data.publicUrl)
+        uploaded.push(await uploadPostFile(file))
       }
       if (uploaded.length > 0) {
         setPostImages((prev) => [...prev, ...uploaded])
@@ -385,6 +413,22 @@ function DashboardContent() {
       setPostMsg({ ok: false, text: 'No se pudo subir alguna imagen. Intentá de nuevo.' })
     } finally {
       setUploadingPostImage(false)
+    }
+  }
+
+  // Uploads the article cover image.
+  const handleUploadCover = async (file: File) => {
+    if (!file.type.startsWith('image/')) { setPostMsg({ ok: false, text: 'Elegí una imagen.' }); return }
+    if (file.size > 10 * 1024 * 1024) { setPostMsg({ ok: false, text: 'La portada debe pesar menos de 10MB.' }); return }
+    setUploadingCover(true)
+    setPostMsg(null)
+    try {
+      setPostCover(await uploadPostFile(file))
+    } catch (err) {
+      console.error('[upload cover]', err)
+      setPostMsg({ ok: false, text: 'No se pudo subir la portada. Intentá de nuevo.' })
+    } finally {
+      setUploadingCover(false)
     }
   }
 
@@ -631,15 +675,70 @@ function DashboardContent() {
                           </select>
                         </div>
                         <div>
-                          <Label htmlFor="post-title" className={labelCls}>Título (opcional)</Label>
-                          <input id="post-title" value={postTitle} onChange={(e) => setPostTitle(e.target.value)} placeholder="Título de la publicación" className={inputCls} />
-                        </div>
-                        <div>
-                          <Label htmlFor="post-content" className={labelCls}>
-                            {postType === 'image' ? 'Descripción (opcional)' : 'Contenido *'}
+                          <Label htmlFor="post-title" className={labelCls}>
+                            {postType === 'article' ? 'Título *' : 'Título (opcional)'}
                           </Label>
-                          <Textarea id="post-content" value={postContent} onChange={(e) => setPostContent(e.target.value)} placeholder="¿Qué querés compartir?" rows={4} />
+                          <input id="post-title" value={postTitle} onChange={(e) => setPostTitle(e.target.value)} placeholder={postType === 'article' ? 'Título del artículo' : 'Título de la publicación'} className={inputCls} />
                         </div>
+                        {postType !== 'article' && (
+                          <div>
+                            <Label htmlFor="post-content" className={labelCls}>
+                              {postType === 'image' ? 'Descripción (opcional)' : 'Contenido *'}
+                            </Label>
+                            <Textarea id="post-content" value={postContent} onChange={(e) => setPostContent(e.target.value)} placeholder="¿Qué querés compartir?" rows={4} />
+                          </div>
+                        )}
+
+                        {postType === 'article' && (
+                          <>
+                            {/* Cover image */}
+                            <div>
+                              <Label className={labelCls}>Portada (opcional)</Label>
+                              {postCover ? (
+                                <div className="relative">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img src={postCover} alt="Portada" className="w-full aspect-[16/9] object-cover rounded-lg border border-borde" />
+                                  <button
+                                    type="button"
+                                    onClick={() => setPostCover(null)}
+                                    aria-label="Quitar portada"
+                                    className="absolute top-1.5 right-1.5 bg-tinta/70 hover:bg-tinta text-white rounded-full p-1 transition-colors"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => coverInputRef.current?.click()}
+                                  disabled={uploadingCover}
+                                  className="w-full border border-dashed border-borde rounded-lg py-5 flex flex-col items-center justify-center gap-1.5 text-txt2 hover:border-rosa hover:text-rosa transition-colors disabled:opacity-60"
+                                >
+                                  {uploadingCover ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
+                                  <span className="text-[12px] font-medium">{uploadingCover ? 'Subiendo...' : 'Subir portada'}</span>
+                                  <span className="text-[10px] text-muted2">Se muestra arriba del artículo y al compartir</span>
+                                </button>
+                              )}
+                              <input
+                                ref={coverInputRef}
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) handleUploadCover(f) }}
+                              />
+                            </div>
+                            {/* Rich text body */}
+                            <div>
+                              <Label className={labelCls}>Contenido *</Label>
+                              <ArticleEditor
+                                value={postBody}
+                                onChange={setPostBody}
+                                onUploadImage={uploadPostFile}
+                                placeholder="Escribí tu historia… podés agregar títulos, imágenes, citas y más."
+                              />
+                            </div>
+                          </>
+                        )}
 
                         {postType === 'image' && (
                           <div>
@@ -700,8 +799,17 @@ function DashboardContent() {
                           </div>
                         )}
                         {postMsg && <Feedback ok={postMsg.ok} text={postMsg.text} />}
-                        <button type="submit" className={`w-full ${primaryBtn}`} disabled={savingPost || uploadingPostImage || (!postContent.trim() && (postType === 'image' ? postImages.length === 0 : !postMediaUrl.trim()))}>
-                          {savingPost && <Loader2 className="w-4 h-4 animate-spin" />} Publicar
+                        <button
+                          type="submit"
+                          className={`w-full ${primaryBtn}`}
+                          disabled={
+                            savingPost || uploadingPostImage || uploadingCover ||
+                            (postType === 'article'
+                              ? (!postTitle.trim() || isArticleEmpty(postBody))
+                              : (!postContent.trim() && (postType === 'image' ? postImages.length === 0 : !postMediaUrl.trim())))
+                          }
+                        >
+                          {savingPost && <Loader2 className="w-4 h-4 animate-spin" />} {postType === 'article' ? 'Publicar artículo' : 'Publicar'}
                         </button>
                       </form>
                     </div>
@@ -725,7 +833,7 @@ function DashboardContent() {
                           style={{ borderLeft: `4px solid ${postAccent(post.post_type)}` }}
                         >
                           <div className="flex items-start justify-between gap-3">
-                            {post.post_type === 'image' && (post.media_urls?.[0] || post.media_url) && (
+                            {(post.post_type === 'image' || post.post_type === 'article') && (post.media_urls?.[0] || post.media_url) && (
                               <div className="relative shrink-0">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img src={post.media_urls?.[0] || post.media_url || ''} alt="" className="w-12 h-12 rounded object-cover border border-borde" />
@@ -740,12 +848,22 @@ function DashboardContent() {
                               {post.title && <p className="font-semibold text-tinta text-[13px] mb-1 truncate">{post.title}</p>}
                               {post.content && <p className="text-txt2 text-[12px] leading-relaxed line-clamp-2">{post.content}</p>}
                               <div className="flex items-center gap-2.5 mt-2">
-                                <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full border border-borde text-txt2 capitalize">
-                                  {post.post_type}
+                                <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full border border-borde text-txt2">
+                                  {POST_TYPE_LABEL[post.post_type] ?? post.post_type}
                                 </span>
                                 <span className="text-[10px] text-muted2">
                                   {format(new Date(post.created_at), 'd MMM yyyy', { locale: es })}
                                 </span>
+                                {post.post_type === 'article' && username && (
+                                  <a
+                                    href={`/${username}/${post.id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-[10px] font-medium text-rosa hover:text-rosa-hover transition-colors"
+                                  >
+                                    <ExternalLink className="w-3 h-3" /> Ver
+                                  </a>
+                                )}
                               </div>
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
@@ -1088,6 +1206,15 @@ function postAccent(postType: string): string {
     case 'link': return '#FF9D3D'
     default: return '#1B1A2E'
   }
+}
+
+const POST_TYPE_LABEL: Record<string, string> = {
+  text: 'Texto',
+  article: 'Artículo',
+  link: 'Link',
+  video: 'Video',
+  image: 'Imagen',
+  audio: 'Audio',
 }
 
 function StatCard({

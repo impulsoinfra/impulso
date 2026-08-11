@@ -64,7 +64,8 @@ export async function GET(req: Request, { params }: Params) {
   let mediaImageUrl: string | null = null
   let mediaKind: 'image' | 'video' | null = null
   const firstImage = (post.media_urls && post.media_urls[0]) || post.media_url
-  if (post.post_type === 'image' && firstImage) {
+  if ((post.post_type === 'image' || post.post_type === 'article') && firstImage) {
+    // Articles use media_url as the cover image.
     mediaImageUrl = firstImage
     mediaKind = 'image'
   } else if (post.media_url) {

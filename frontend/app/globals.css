@@ -174,3 +174,93 @@
   white-space: nowrap;
   animation: impulso-marquee 26s linear infinite;
 }
+
+/* ── Long-form articles ─────────────────────────────────────────────────────
+   Shared by the reader (ArticleContent) and the TipTap editor so the writing
+   experience is WYSIWYG. Sized for mobile (1x); the desktop body { zoom } scales
+   it up along with the rest of the UI. */
+.article-body {
+  color: var(--color-tinta);
+  font-family: var(--font-inter), sans-serif;
+  font-size: 16px;
+  line-height: 1.75;
+  word-break: break-word;
+}
+.article-body > * + * { margin-top: 1.1em; }
+.article-body h2 {
+  font-family: var(--font-anton), sans-serif;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  font-size: 1.5em;
+  line-height: 1.15;
+  margin-top: 1.7em;
+  margin-bottom: 0.2em;
+}
+.article-body h3 {
+  font-weight: 600;
+  font-size: 1.2em;
+  line-height: 1.3;
+  margin-top: 1.4em;
+  margin-bottom: 0.1em;
+}
+.article-body p { margin-bottom: 0; }
+.article-body a {
+  color: var(--color-rosa);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.article-body a:hover { color: var(--color-rosa-hover); }
+.article-body strong { font-weight: 600; }
+.article-body ul, .article-body ol { padding-left: 1.4em; }
+.article-body ul { list-style: disc; }
+.article-body ol { list-style: decimal; }
+.article-body li { margin: 0.3em 0; }
+.article-body li > p { margin: 0; } /* TipTap wraps list-item text in <p> */
+.article-body blockquote {
+  border-left: 4px solid var(--color-rosa);
+  padding: 0.1em 0 0.1em 1rem;
+  color: var(--color-txt2);
+  font-style: italic;
+}
+.article-body img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  border: 1px solid var(--color-borde);
+}
+.article-body hr {
+  border: 0;
+  border-top: 1px solid var(--color-borde);
+  margin: 2em 0;
+}
+.article-body code {
+  background: rgba(27, 26, 46, 0.06);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+  font-size: 0.9em;
+}
+.article-body pre {
+  background: var(--color-tinta);
+  color: var(--color-crema);
+  border-radius: 10px;
+  padding: 1rem;
+  overflow-x: auto;
+  font-size: 0.85em;
+  line-height: 1.5;
+}
+.article-body pre code { background: none; padding: 0; }
+
+/* Editor chrome */
+.article-editor .ProseMirror { outline: none; min-height: 240px; }
+.article-editor .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--color-muted2);
+}
+.article-editor .ProseMirror img.ProseMirror-selectednode {
+  outline: 3px solid var(--color-rosa);
+  outline-offset: 2px;
+}

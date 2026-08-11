@@ -1,9 +1,10 @@
 import { notFound } from 'next/navigation'
+import Link from 'next/link'
 import { createServerClient } from '@/lib/supabase-server'
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 import { ProfileBanner } from '@/components/profile/profile-banner'
-import { Globe, Calendar, FileText, Heart } from 'lucide-react'
+import { Globe, Calendar, FileText, Heart, BookOpen, ArrowRight } from 'lucide-react'
 import { ImpulsarButton } from '@/components/support/impulsar-button'
 import { ShareMenu, type ShareOption } from '@/components/share/share-menu'
 import { PostCarousel } from '@/components/posts/post-carousel'
@@ -211,6 +212,43 @@ export default async function CreatorProfilePage({ params }: Props) {
                 <div className="space-y-2.5">
                   {posts.map((post) => {
                     const accent = postAccent(post.post_type)
+
+                    // Articles are long-form: show a card that links to the full reading page.
+                    if (post.post_type === 'article') {
+                      return (
+                        <Link
+                          key={post.id}
+                          href={`/${username}/${post.id}`}
+                          className="block bg-white border border-borde rounded-[10px] overflow-hidden hover:border-tinta/30 hover:shadow-sm transition-all"
+                          style={{ borderLeft: `4px solid ${accent}` }}
+                        >
+                          {post.media_url && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={post.media_url} alt={post.title ?? ''} className="w-full h-40 lg:h-48 object-cover" />
+                          )}
+                          <div className="p-3.5">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-rosa mb-1.5">
+                              <BookOpen className="w-3 h-3" /> Artículo
+                            </span>
+                            {post.title && (
+                              <p className="disp text-tinta text-[17px] lg:text-[19px] leading-tight mb-1.5">{post.title}</p>
+                            )}
+                            {post.content && (
+                              <p className="text-[12px] text-txt2 leading-relaxed mb-2.5 line-clamp-3">{post.content}</p>
+                            )}
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] text-muted2">
+                                {format(new Date(post.created_at), 'd MMM yyyy', { locale: es })}
+                              </span>
+                              <span className="inline-flex items-center gap-1 text-rosa text-[12px] font-semibold">
+                                Leer artículo <ArrowRight className="w-3.5 h-3.5" />
+                              </span>
+                            </div>
+                          </div>
+                        </Link>
+                      )
+                    }
+
                     return (
                       <div
                         key={post.id}

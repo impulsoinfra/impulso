@@ -158,6 +158,14 @@ CREATE POLICY "Owner delete avatars" ON storage.objects
 -- primera imagen (compat / miniaturas); `media_urls` guarda todas.
 ALTER TABLE public.posts ADD COLUMN IF NOT EXISTS media_urls text[];
 
+-- Artículos largos (tipo Medium/Patreon): cuerpo enriquecido guardado como JSON
+-- de TipTap en `body`. `content` guarda un extracto en texto plano (preview del
+-- feed + imagen social) y `media_url` la portada. Se agrega 'article' a los tipos.
+ALTER TABLE public.posts ADD COLUMN IF NOT EXISTS body jsonb;
+ALTER TABLE public.posts DROP CONSTRAINT IF EXISTS posts_post_type_check;
+ALTER TABLE public.posts ADD CONSTRAINT posts_post_type_check
+  CHECK (post_type = ANY (ARRAY['text','image','audio','video','link','article']));
+
 -- Bucket público para imágenes de publicaciones
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('posts', 'posts', true)
