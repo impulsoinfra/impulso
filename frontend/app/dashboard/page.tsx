@@ -449,6 +449,7 @@ function DashboardContent() {
     : []
 
   const postShareOptions = (postId: string): ShareOption[] => [
+    { key: 'link', kind: 'link', label: 'Copiar link', hint: `tuimpulso.ar/${username}`, link: `/${username}/${postId}` },
     { key: 'story', label: 'Historia', hint: '1080×1920', url: `/api/share/post/${postId}`, filename: 'impulso-publicacion-historia.png' },
     { key: 'square', label: 'Cuadrado (feed)', hint: '1080×1080', url: `/api/share/post/${postId}?format=square`, filename: 'impulso-publicacion-cuadrado.png' },
   ]
@@ -774,7 +775,7 @@ function DashboardContent() {
                                 <span className="text-[10px] text-muted2">
                                   {format(new Date(post.created_at), 'd MMM yyyy', { locale: es })}
                                 </span>
-                                {post.post_type === 'article' && username && (
+                                {username && (
                                   <a
                                     href={`/${username}/${post.id}`}
                                     target="_blank"

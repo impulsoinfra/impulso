@@ -120,6 +120,7 @@ export default async function CreatorProfilePage({ params }: Props) {
     )
   }
   const postShareOptions = (postId: string): ShareOption[] => [
+    { key: 'link', kind: 'link', label: 'Copiar link de la publicación', hint: `tuimpulso.ar/${username}`, link: `/${username}/${postId}` },
     { key: 'story', label: 'Historia', hint: '1080×1920', url: `/api/share/post/${postId}`, filename: 'impulso-publicacion-historia.png' },
     { key: 'square', label: 'Cuadrado (feed)', hint: '1080×1080', url: `/api/share/post/${postId}?format=square`, filename: 'impulso-publicacion-cuadrado.png' },
   ]
@@ -273,9 +274,12 @@ export default async function CreatorProfilePage({ params }: Props) {
                         )}
 
                         <div className="flex justify-between items-center">
-                          <span className="text-[10px] text-muted2">
+                          <Link
+                            href={`/${username}/${post.id}`}
+                            className="text-[10px] text-muted2 hover:text-rosa transition-colors"
+                          >
                             {format(new Date(post.created_at), "d MMM yyyy", { locale: es })}
-                          </span>
+                          </Link>
                           <div className="flex items-center gap-2 shrink-0">
                             <ShareMenu
                               options={postShareOptions(post.id)}

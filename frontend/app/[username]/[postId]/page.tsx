@@ -6,6 +6,8 @@ import { Footer } from '@/components/layout/footer'
 import { ImpulsarButton } from '@/components/support/impulsar-button'
 import { ShareMenu, type ShareOption } from '@/components/share/share-menu'
 import { ArticleContent } from '@/components/posts/article-content'
+import { PostCarousel } from '@/components/posts/post-carousel'
+import { MediaEmbed } from '@/components/posts/media-embed'
 import { articleExcerpt, readingTimeMinutes, firstArticleImage, type ArticleDoc } from '@/lib/article'
 import { ArrowLeft, Calendar, Clock } from 'lucide-react'
 import { format } from 'date-fns'
@@ -16,8 +18,17 @@ interface Props {
   params: Promise<{ username: string; postId: string }>
 }
 
-// Loads the article + its creator, verifying the post belongs to @username.
-async function loadArticle(username: string, postId: string) {
+type PostProfile = {
+  id: string
+  name: string
+  username: string
+  avatar_url: string | null
+  creator_type: string | null
+  mp_connected: boolean | null
+}
+
+// Loads a post + its creator, verifying the post belongs to @username.
+async function loadPost(username: string, postId: string) {
   const supabase = createServerClient()
   const { data: profile } = await supabase
     .from('profiles')
@@ -31,23 +42,41 @@ async function loadArticle(username: string, postId: string) {
     .select('*')
     .eq('id', postId)
     .eq('creator_id', profile.id)
-    .eq('post_type', 'article')
     .maybeSingle()
   if (!post) return null
 
-  return { profile, post }
+  return { profile: profile as PostProfile, post }
+}
+
+// Cover image used for OG previews: article cover / first image; link & audio
+// posts have no usable image (media_url is an external URL), so none.
+function coverOf(post: any): string | null {
+  if (post.post_type === 'article') {
+    return post.media_url || firstArticleImage(post.body as ArticleDoc | null)
+  }
+  if (post.post_type === 'image') {
+    return post.media_urls?.[0] || post.media_url || null
+  }
+  return null
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { username, postId } = await params
-  const data = await loadArticle(username, postId)
-  if (!data) return { title: 'Artículo no encontrado — Impulso' }
+  const data = await loadPost(username, postId)
+  if (!data) return { title: 'Publicación no encontrada — Impulso' }
 
   const { profile, post } = data
-  const body = post.body as ArticleDoc | null
-  const title = `${post.title ?? 'Artículo'} — ${profile.name}`
-  const description = post.content?.trim() || articleExcerpt(body, 160)
-  const cover = post.media_url || firstArticleImage(body)
+  const isArticle = post.post_type === 'article'
+  const excerpt = isArticle
+    ? (post.content?.trim() || articleExcerpt(post.body as ArticleDoc | null, 160))
+    : post.content?.trim()
+
+  const heading =
+    post.title?.trim() ||
+    (isArticle ? 'Artículo' : excerpt ? excerpt.slice(0, 70) : `Publicación de ${profile.name}`)
+  const title = `${heading} — ${profile.name}`
+  const description = excerpt || `Apoyá a ${profile.name} en Impulso`
+  const cover = coverOf(post)
 
   return {
     title,
@@ -55,7 +84,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title,
       description,
-      type: 'article',
+      type: isArticle ? 'article' : 'website',
       url: `/${username}/${postId}`,
       siteName: 'Impulso',
       ...(cover ? { images: [{ url: cover }] } : {}),
@@ -69,25 +98,31 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-export default async function ArticlePage({ params }: Props) {
+export default async function PostPage({ params }: Props) {
   const { username, postId } = await params
-  const data = await loadArticle(username, postId)
+  const data = await loadPost(username, postId)
   if (!data) notFound()
 
   const { profile, post } = data
+  const isArticle = post.post_type === 'article'
   const body = post.body as ArticleDoc | null
-  const cover = post.media_url || firstArticleImage(body)
-  const minutes = readingTimeMinutes(body)
+  const cover = isArticle ? (post.media_url || firstArticleImage(body)) : null
+  const minutes = isArticle ? readingTimeMinutes(body) : 0
+  const firstName = profile.name?.split(' ')[0] ?? username
 
-  const initials = profile.name
-    ? profile.name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()
-    : username.slice(0, 2).toUpperCase()
+  const images = post.media_urls?.length
+    ? post.media_urls
+    : post.media_url
+      ? [post.media_url]
+      : []
 
   const shareOptions: ShareOption[] = [
-    { key: 'link', kind: 'link', label: 'Copiar link del artículo', hint: `tuimpulso.ar/${username}`, link: `/${username}/${postId}` },
-    { key: 'story', label: 'Historia', hint: '1080×1920', url: `/api/share/post/${postId}`, filename: 'impulso-articulo-historia.png' },
-    { key: 'square', label: 'Cuadrado (feed)', hint: '1080×1080', url: `/api/share/post/${postId}?format=square`, filename: 'impulso-articulo-cuadrado.png' },
+    { key: 'link', kind: 'link', label: 'Copiar link', hint: `tuimpulso.ar/${username}`, link: `/${username}/${postId}` },
+    { key: 'story', label: 'Historia', hint: '1080×1920', url: `/api/share/post/${postId}`, filename: 'impulso-publicacion-historia.png' },
+    { key: 'square', label: 'Cuadrado (feed)', hint: '1080×1080', url: `/api/share/post/${postId}?format=square`, filename: 'impulso-publicacion-cuadrado.png' },
   ]
+
+  const maxW = isArticle ? 'max-w-[720px]' : 'max-w-[640px]'
 
   return (
     <div className="min-h-screen bg-crema">
@@ -95,7 +130,7 @@ export default async function ArticlePage({ params }: Props) {
 
       <article className="bg-crema pb-16">
         <div className="wrap">
-          <div className="max-w-[720px] mx-auto pt-6">
+          <div className={`${maxW} mx-auto pt-6`}>
             <Link
               href={`/${username}`}
               className="inline-flex items-center gap-1.5 text-muted2 hover:text-tinta text-[13px] font-medium transition-colors mb-5"
@@ -103,60 +138,62 @@ export default async function ArticlePage({ params }: Props) {
               <ArrowLeft className="w-4 h-4" /> Volver al perfil
             </Link>
 
-            {/* Cover */}
-            {cover && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={cover}
-                alt={post.title ?? ''}
-                className="w-full max-h-[420px] object-cover rounded-2xl border border-borde mb-6"
-              />
-            )}
-
-            {/* Title */}
-            {post.title && (
-              <h1 className="disp text-tinta text-[28px] md:text-[36px] lg:text-[42px] leading-[1.05] mb-4">
-                {post.title}
-              </h1>
-            )}
-
-            {/* Byline */}
-            <div className="flex items-center justify-between gap-3 flex-wrap border-b border-borde pb-5 mb-7">
-              <Link href={`/${username}`} className="flex items-center gap-3 group">
-                {profile.avatar_url ? (
+            {isArticle ? (
+              <>
+                {/* Cover */}
+                {cover && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={profile.avatar_url} alt={profile.name} className="w-11 h-11 rounded-full object-cover border border-borde" />
-                ) : (
-                  <div className="w-11 h-11 rounded-full bg-rosa text-white flex items-center justify-center text-sm font-bold">
-                    {initials}
-                  </div>
+                  <img
+                    src={cover}
+                    alt={post.title ?? ''}
+                    className="w-full max-h-[420px] object-cover rounded-2xl border border-borde mb-6"
+                  />
                 )}
-                <div>
-                  <p className="font-semibold text-tinta text-[14px] group-hover:text-rosa transition-colors leading-tight">{profile.name}</p>
-                  <div className="flex items-center gap-2.5 text-muted2 text-[11px] mt-0.5">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />
-                      {format(new Date(post.created_at), "d 'de' MMMM, yyyy", { locale: es })}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> {minutes} min de lectura
-                    </span>
-                  </div>
-                </div>
-              </Link>
 
-              <ShareMenu options={shareOptions} triggerLabel="Compartir" align="responsive" />
-            </div>
+                {/* Title */}
+                {post.title && (
+                  <h1 className="disp text-tinta text-[28px] md:text-[36px] lg:text-[42px] leading-[1.05] mb-4">
+                    {post.title}
+                  </h1>
+                )}
 
-            {/* Body */}
-            <ArticleContent doc={body} />
+                <Byline profile={profile} username={username} createdAt={post.created_at} minutes={minutes} shareOptions={shareOptions} />
+
+                {/* Body */}
+                <ArticleContent doc={body} />
+              </>
+            ) : (
+              <>
+                <Byline profile={profile} username={username} createdAt={post.created_at} minutes={0} shareOptions={shareOptions} />
+
+                {post.title && (
+                  <h1 className="disp text-tinta text-[22px] md:text-[28px] leading-tight mb-3">{post.title}</h1>
+                )}
+                {post.content && (
+                  <p className="text-tinta text-[15px] md:text-[16px] leading-relaxed whitespace-pre-wrap mb-5">
+                    {post.content}
+                  </p>
+                )}
+
+                {post.post_type === 'image' && images.length > 0 && (
+                  <PostCarousel images={images} alt={post.title ?? undefined} />
+                )}
+                {post.post_type !== 'image' && post.media_url && (
+                  <MediaEmbed url={post.media_url} title={post.title} />
+                )}
+              </>
+            )}
 
             {/* Support CTA */}
             <div className="mt-12 pt-8 border-t border-borde">
               <div className="bg-white border-2 border-tinta rounded-xl p-5 text-center">
-                <p className="disp text-tinta text-[18px] uppercase mb-1.5">¿Te gustó lo que leíste?</p>
+                <p className="disp text-tinta text-[18px] uppercase mb-1.5">
+                  {isArticle ? '¿Te gustó lo que leíste?' : `¿Te gusta lo que hace ${firstName}?`}
+                </p>
                 <p className="text-txt2 text-[13px] mb-4 max-w-sm mx-auto">
-                  Apoyá a {profile.name.split(' ')[0]} para que siga escribiendo y creando.
+                  {isArticle
+                    ? `Apoyá a ${firstName} para que siga escribiendo y creando.`
+                    : `Sumate y apoyá a ${firstName} para que siga creando.`}
                 </p>
                 <div className="flex items-center justify-center gap-2 flex-wrap [&>button]:py-2.5">
                   <ImpulsarButton
@@ -167,7 +204,7 @@ export default async function ArticlePage({ params }: Props) {
                     postTitle={post.title}
                     creatorConnected={profile.mp_connected}
                     variant="primary"
-                    label={`Apoyar a ${profile.name.split(' ')[0]}`}
+                    label={`Apoyar a ${firstName}`}
                   />
                   <Link
                     href={`/${username}`}
@@ -183,6 +220,56 @@ export default async function ArticlePage({ params }: Props) {
       </article>
 
       <Footer />
+    </div>
+  )
+}
+
+// Author row: avatar + name + date (+ reading time for articles) and the share menu.
+function Byline({
+  profile,
+  username,
+  createdAt,
+  minutes,
+  shareOptions,
+}: {
+  profile: PostProfile
+  username: string
+  createdAt: string
+  minutes: number
+  shareOptions: ShareOption[]
+}) {
+  const initials = profile.name
+    ? profile.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
+    : username.slice(0, 2).toUpperCase()
+
+  return (
+    <div className="flex items-center justify-between gap-3 flex-wrap border-b border-borde pb-5 mb-7">
+      <Link href={`/${username}`} className="flex items-center gap-3 group">
+        {profile.avatar_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={profile.avatar_url} alt={profile.name} className="w-11 h-11 rounded-full object-cover border border-borde" />
+        ) : (
+          <div className="w-11 h-11 rounded-full bg-rosa text-white flex items-center justify-center text-sm font-bold">
+            {initials}
+          </div>
+        )}
+        <div>
+          <p className="font-semibold text-tinta text-[14px] group-hover:text-rosa transition-colors leading-tight">{profile.name}</p>
+          <div className="flex items-center gap-2.5 text-muted2 text-[11px] mt-0.5">
+            <span className="flex items-center gap-1">
+              <Calendar className="w-3 h-3" />
+              {format(new Date(createdAt), "d 'de' MMMM, yyyy", { locale: es })}
+            </span>
+            {minutes > 0 && (
+              <span className="flex items-center gap-1">
+                <Clock className="w-3 h-3" /> {minutes} min de lectura
+              </span>
+            )}
+          </div>
+        </div>
+      </Link>
+
+      <ShareMenu options={shareOptions} triggerLabel="Compartir" align="responsive" />
     </div>
   )
 }
