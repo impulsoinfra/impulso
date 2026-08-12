@@ -252,7 +252,7 @@
 .article-body pre code { background: none; padding: 0; }
 
 /* Editor chrome */
-.article-editor .ProseMirror { outline: none; min-height: 240px; }
+.article-editor .ProseMirror { outline: none; min-height: var(--editor-min-h, 240px); }
 .article-editor .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   float: left;

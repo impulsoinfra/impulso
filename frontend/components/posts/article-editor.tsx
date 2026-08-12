@@ -18,11 +18,17 @@ export function ArticleEditor({
   onChange,
   onUploadImage,
   placeholder = 'Escribí tu historia…',
+  bordered = true,
+  minHeight,
+  stickyTop = 0,
 }: {
   value: ArticleDoc | null
   onChange: (doc: ArticleDoc) => void
   onUploadImage: (file: File) => Promise<string>
   placeholder?: string
+  bordered?: boolean       // false = borderless canvas (full-page editor)
+  minHeight?: string       // CSS length for the editable area (e.g. '60vh')
+  stickyTop?: number       // px offset for the sticky toolbar (below a page top bar)
 }) {
   const [uploading, setUploading] = useState(false)
   const [linkOpen, setLinkOpen] = useState(false)
@@ -92,9 +98,12 @@ export function ArticleEditor({
   const canEdit = !!editor
 
   return (
-    <div className="article-editor border border-borde rounded-lg overflow-hidden bg-white">
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-0.5 border-b border-borde bg-crema/60 px-1.5 py-1">
+    <div
+      className={`article-editor bg-white ${bordered ? 'border border-borde rounded-lg overflow-hidden' : ''}`}
+      style={minHeight ? ({ ['--editor-min-h' as string]: minHeight } as React.CSSProperties) : undefined}
+    >
+      {/* Toolbar — sticky so it stays reachable while writing a long piece */}
+      <div className="sticky z-10 flex flex-wrap items-center gap-0.5 border-b border-borde bg-crema/95 backdrop-blur px-1.5 py-1" style={{ top: stickyTop }}>
         <Btn label="Negrita" active={editor?.isActive('bold')} disabled={!canEdit}
           onClick={() => editor?.chain().focus().toggleBold().run()}><Bold className="w-4 h-4" /></Btn>
         <Btn label="Itálica" active={editor?.isActive('italic')} disabled={!canEdit}
@@ -148,7 +157,7 @@ export function ArticleEditor({
       )}
 
       {/* Editable area */}
-      <div className="px-3.5 py-3 max-h-[420px] overflow-y-auto cursor-text" onClick={() => editor?.chain().focus().run()}>
+      <div className={`cursor-text ${bordered ? 'px-3.5 py-3 max-h-[420px] overflow-y-auto' : 'py-2'}`} onClick={() => editor?.chain().focus().run()}>
         {editor ? (
           <EditorContent editor={editor} />
         ) : (
