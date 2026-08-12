@@ -617,7 +617,7 @@ function DashboardContent() {
               <TabsContent value="posts">
                 {/* Long-form articles live in a dedicated full-screen editor */}
                 <Link
-                  href="/dashboard/escribir"
+                  href="/dashboard/write"
                   className="group flex items-center justify-between gap-4 bg-tinta rounded-xl p-4 mb-5 relative overflow-hidden"
                 >
                   <span className="absolute -top-8 -right-8 w-24 h-24 rounded-full" style={{ background: 'rgba(255,157,61,0.18)' }} />
