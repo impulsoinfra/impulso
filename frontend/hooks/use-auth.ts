@@ -135,6 +135,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         options: { data: { name, role } },
       })
       if (error) throw error
+      // Email confirmation is off (autoconfirm), so signUp returns a live session.
+      // Set it synchronously — like signIn — so the register page can redirect
+      // straight to the dashboard without ProtectedRoute bouncing back to login.
+      if (data.session) {
+        setSession(data.session)
+        setUser(data.user)
+      }
       return { data, error: null }
     } catch (err) {
       return { data: null, error: err }

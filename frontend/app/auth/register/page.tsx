@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Mail, Lock, User, Heart, Star, Check, Loader2, AlertCircle, CheckCircle } from 'lucide-react'
 import { ROUTES } from '@/lib/constants'
 import { Header } from '@/components/layout/header'
@@ -30,6 +31,7 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState(false)
 
   const { signUp } = useAuth()
+  const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -52,6 +54,13 @@ export default function RegisterPage() {
         }
         return
       }
+      // Autoconfirm is on: signUp returns a live session → log in and go straight
+      // to the dashboard (new creators get routed to onboarding from there).
+      if (data?.session) {
+        router.push(ROUTES.DASHBOARD)
+        return
+      }
+      // Fallback if email confirmation ever gets re-enabled: show the check-email notice.
       if (data?.user) setSuccess(true)
     } catch (err: any) {
       setError(err.message || 'Error al crear la cuenta. Por favor, intentá de nuevo.')
