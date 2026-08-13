@@ -8,7 +8,10 @@ import { ShareMenu, type ShareOption } from '@/components/share/share-menu'
 import { ArticleContent } from '@/components/posts/article-content'
 import { PostCarousel } from '@/components/posts/post-carousel'
 import { MediaEmbed } from '@/components/posts/media-embed'
+import { PostInteractionsProvider, PostLikeButton, PostCommentLink } from '@/components/posts/post-interactions'
+import { PostComments } from '@/components/posts/post-comments'
 import { articleExcerpt, readingTimeMinutes, firstArticleImage, type ArticleDoc } from '@/lib/article'
+import { embeddedCount } from '@/lib/interactions'
 import { ArrowLeft, Calendar, Clock } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -39,7 +42,7 @@ async function loadPost(username: string, postId: string) {
 
   const { data: post } = await supabase
     .from('posts')
-    .select('*')
+    .select('*, post_likes(count), post_comments(count)')
     .eq('id', postId)
     .eq('creator_id', profile.id)
     .maybeSingle()
@@ -109,6 +112,8 @@ export default async function PostPage({ params }: Props) {
   const cover = isArticle ? (post.media_url || firstArticleImage(body)) : null
   const minutes = isArticle ? readingTimeMinutes(body) : 0
   const firstName = profile.name?.split(' ')[0] ?? username
+  const likeCount = embeddedCount(post.post_likes)
+  const commentCount = embeddedCount(post.post_comments)
 
   const images = post.media_urls?.length
     ? post.media_urls
@@ -184,6 +189,14 @@ export default async function PostPage({ params }: Props) {
               </>
             )}
 
+            {/* Like + comment bar */}
+            <PostInteractionsProvider postIds={[post.id]} initialLikeCounts={{ [post.id]: likeCount }}>
+              <div className="mt-8 pt-4 border-t border-borde flex items-center gap-5">
+                <PostLikeButton postId={post.id} size="md" />
+                <PostCommentLink postId={post.id} username={username} count={commentCount} size="md" />
+              </div>
+            </PostInteractionsProvider>
+
             {/* Support CTA */}
             <div className="mt-12 pt-8 border-t border-borde">
               <div className="bg-white border-2 border-tinta rounded-xl p-5 text-center">
@@ -215,6 +228,9 @@ export default async function PostPage({ params }: Props) {
                 </div>
               </div>
             </div>
+
+            {/* Comments */}
+            <PostComments postId={post.id} postOwnerId={profile.id} initialCount={commentCount} />
           </div>
         </div>
       </article>

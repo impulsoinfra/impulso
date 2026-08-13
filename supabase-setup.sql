@@ -244,3 +244,60 @@ CREATE OR REPLACE FUNCTION public.increment_goal(p_goal_id uuid, p_amount numeri
 RETURNS void LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
   UPDATE public.goals SET current_amount = current_amount + p_amount WHERE id = p_goal_id;
 $$;
+
+-- ============================================================
+-- 13. Likes y comentarios en publicaciones
+-- ============================================================
+
+-- Likes: una fila por (publicación, usuario). Lectura pública (conteos + quién
+-- likeó); cada usuario likea/deslikea como sí mismo.
+CREATE TABLE IF NOT EXISTS public.post_likes (
+  post_id uuid NOT NULL REFERENCES public.posts(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (post_id, user_id)
+);
+ALTER TABLE public.post_likes ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public read post_likes" ON public.post_likes;
+CREATE POLICY "Public read post_likes" ON public.post_likes
+  FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "User inserts own like" ON public.post_likes;
+CREATE POLICY "User inserts own like" ON public.post_likes
+  FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "User deletes own like" ON public.post_likes;
+CREATE POLICY "User deletes own like" ON public.post_likes
+  FOR DELETE TO authenticated USING (auth.uid() = user_id);
+
+CREATE INDEX IF NOT EXISTS post_likes_post_idx ON public.post_likes(post_id);
+CREATE INDEX IF NOT EXISTS post_likes_user_idx ON public.post_likes(user_id);
+
+-- Comentarios planos (sin hilos). Lectura pública; el autor puede borrar el
+-- suyo y el dueño de la publicación puede moderar (borrar cualquiera en su post).
+CREATE TABLE IF NOT EXISTS public.post_comments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  post_id uuid NOT NULL REFERENCES public.posts(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  content text NOT NULL CHECK (char_length(content) BETWEEN 1 AND 2000),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.post_comments ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public read post_comments" ON public.post_comments;
+CREATE POLICY "Public read post_comments" ON public.post_comments
+  FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "User inserts own comment" ON public.post_comments;
+CREATE POLICY "User inserts own comment" ON public.post_comments
+  FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "User deletes own comment or post owner moderates" ON public.post_comments;
+CREATE POLICY "User deletes own comment or post owner moderates" ON public.post_comments
+  FOR DELETE TO authenticated USING (
+    auth.uid() = user_id
+    OR auth.uid() = (SELECT creator_id FROM public.posts WHERE id = post_id)
+  );
+
+CREATE INDEX IF NOT EXISTS post_comments_post_idx ON public.post_comments(post_id, created_at DESC);

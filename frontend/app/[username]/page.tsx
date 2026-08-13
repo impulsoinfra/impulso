@@ -9,6 +9,8 @@ import { ImpulsarButton } from '@/components/support/impulsar-button'
 import { ShareMenu, type ShareOption } from '@/components/share/share-menu'
 import { PostCarousel } from '@/components/posts/post-carousel'
 import { MediaEmbed } from '@/components/posts/media-embed'
+import { PostInteractionsProvider, PostLikeButton, PostCommentLink } from '@/components/posts/post-interactions'
+import { embeddedCount } from '@/lib/interactions'
 import { getAdminClient } from '@/lib/supabase-admin'
 import { getSupportMessages, type SupportMessage } from '@/lib/support'
 import { format } from 'date-fns'
@@ -77,7 +79,7 @@ export default async function CreatorProfilePage({ params }: Props) {
   const [{ data: posts }, { data: goal }] = await Promise.all([
     supabase
       .from('posts')
-      .select('*')
+      .select('*, post_likes(count), post_comments(count)')
       .eq('creator_id', profile.id)
       .order('created_at', { ascending: false })
       .limit(20),
@@ -107,6 +109,12 @@ export default async function CreatorProfilePage({ params }: Props) {
   const goalPercent = goal
     ? Math.min(Math.round((Number(goal.current_amount) / Number(goal.target_amount)) * 100), 100)
     : 0
+
+  // Like counts (server) seed the interactions provider; the client fills in which
+  // ones the current user liked.
+  const postIds = (posts ?? []).map((p) => p.id as string)
+  const initialLikeCounts: Record<string, number> = {}
+  for (const p of posts ?? []) initialLikeCounts[p.id] = embeddedCount(p.post_likes)
 
   // Profile share hub: copy/share the link (OG preview) + the goal images when there's a goal.
   // username is guaranteed by the route param.
@@ -210,43 +218,77 @@ export default async function CreatorProfilePage({ params }: Props) {
                 <h2 className="disp text-tinta text-[16px] uppercase mb-3">Publicaciones</h2>
 
               {posts && posts.length > 0 ? (
+                <PostInteractionsProvider postIds={postIds} initialLikeCounts={initialLikeCounts}>
                 <div className="space-y-2.5">
                   {posts.map((post) => {
                     const accent = postAccent(post.post_type)
+                    const commentCount = embeddedCount(post.post_comments)
 
-                    // Articles are long-form: show a card that links to the full reading page.
+                    // Footer action row shared by every card type: like, comment, date +
+                    // share and support.
+                    const actions = (
+                      <div className="flex items-center justify-between gap-2 pt-2.5 mt-2.5 border-t border-borde">
+                        <div className="flex items-center gap-4 min-w-0">
+                          <PostLikeButton postId={post.id} />
+                          <PostCommentLink postId={post.id} username={username} count={commentCount} />
+                          <Link
+                            href={`/${username}/${post.id}`}
+                            className="text-[10px] text-muted2 hover:text-rosa transition-colors truncate"
+                          >
+                            {format(new Date(post.created_at), 'd MMM yyyy', { locale: es })}
+                          </Link>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <ShareMenu
+                            options={postShareOptions(post.id)}
+                            triggerLabel="Compartir"
+                            triggerClassName="inline-flex items-center gap-1.5 text-muted2 hover:text-rosa text-[12px] font-medium transition-colors"
+                          />
+                          <ImpulsarButton
+                            creatorId={profile.id}
+                            creatorName={profile.name}
+                            creatorUsername={username}
+                            postId={post.id}
+                            postTitle={post.title}
+                            creatorConnected={profile.mp_connected}
+                          />
+                        </div>
+                      </div>
+                    )
+
+                    // Articles are long-form: the visual body links to the reading page;
+                    // the action row stays outside that link so its buttons stay clickable.
                     if (post.post_type === 'article') {
                       return (
-                        <Link
+                        <div
                           key={post.id}
-                          href={`/${username}/${post.id}`}
-                          className="block bg-white border border-borde rounded-[10px] overflow-hidden hover:border-tinta/30 hover:shadow-sm transition-all"
+                          className="bg-white border border-borde rounded-[10px] overflow-hidden"
                           style={{ borderLeft: `4px solid ${accent}` }}
                         >
-                          {post.media_url && (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={post.media_url} alt={post.title ?? ''} className="w-full h-40 lg:h-48 object-cover" />
-                          )}
-                          <div className="p-3.5">
-                            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-rosa mb-1.5">
-                              <BookOpen className="w-3 h-3" /> Artículo
-                            </span>
-                            {post.title && (
-                              <p className="disp text-tinta text-[17px] lg:text-[19px] leading-tight mb-1.5">{post.title}</p>
+                          <Link href={`/${username}/${post.id}`} className="block hover:bg-tinta/[0.015] transition-colors">
+                            {post.media_url && (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={post.media_url} alt={post.title ?? ''} className="w-full h-40 lg:h-48 object-cover" />
                             )}
-                            {post.content && (
-                              <p className="text-[12px] text-txt2 leading-relaxed mb-2.5 line-clamp-3">{post.content}</p>
-                            )}
-                            <div className="flex items-center justify-between">
-                              <span className="text-[10px] text-muted2">
-                                {format(new Date(post.created_at), 'd MMM yyyy', { locale: es })}
+                            <div className="p-3.5 pb-0">
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-rosa mb-1.5">
+                                <BookOpen className="w-3 h-3" /> Artículo
                               </span>
+                              {post.title && (
+                                <p className="disp text-tinta text-[17px] lg:text-[19px] leading-tight mb-1.5">{post.title}</p>
+                              )}
+                              {post.content && (
+                                <p className="text-[12px] text-txt2 leading-relaxed mb-2.5 line-clamp-3">{post.content}</p>
+                              )}
                               <span className="inline-flex items-center gap-1 text-rosa text-[12px] font-semibold">
                                 Leer artículo <ArrowRight className="w-3.5 h-3.5" />
                               </span>
                             </div>
+                          </Link>
+                          <div className="px-3.5 pb-3.5">
+                            {actions}
                           </div>
-                        </Link>
+                        </div>
                       )
                     }
 
@@ -273,33 +315,12 @@ export default async function CreatorProfilePage({ params }: Props) {
                           <MediaEmbed url={post.media_url} title={post.title} />
                         )}
 
-                        <div className="flex justify-between items-center">
-                          <Link
-                            href={`/${username}/${post.id}`}
-                            className="text-[10px] text-muted2 hover:text-rosa transition-colors"
-                          >
-                            {format(new Date(post.created_at), "d MMM yyyy", { locale: es })}
-                          </Link>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <ShareMenu
-                              options={postShareOptions(post.id)}
-                              triggerLabel="Compartir"
-                              triggerClassName="inline-flex items-center gap-1.5 text-muted2 hover:text-rosa text-[12px] font-medium transition-colors"
-                            />
-                            <ImpulsarButton
-                              creatorId={profile.id}
-                              creatorName={profile.name}
-                              creatorUsername={username}
-                              postId={post.id}
-                              postTitle={post.title}
-                              creatorConnected={profile.mp_connected}
-                            />
-                          </div>
-                        </div>
+                        {actions}
                       </div>
                     )
                   })}
                 </div>
+                </PostInteractionsProvider>
               ) : (
                 <div className="bg-white border border-dashed border-borde rounded-[10px] p-10 text-center">
                   <FileText className="w-9 h-9 text-muted2 mx-auto mb-3" />

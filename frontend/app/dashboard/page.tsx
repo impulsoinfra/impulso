@@ -19,7 +19,7 @@ import {
   FileText, Target, User, Plus, Trash2, ExternalLink,
   Loader2, CheckCircle, AlertCircle, Camera, Pencil,
   DollarSign, Wallet, Upload, Heart, Star, Eye,
-  PenLine, ArrowRight, AlignLeft, Images, PlayCircle,
+  PenLine, ArrowRight, AlignLeft, Images, PlayCircle, MessageCircle,
 } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -27,6 +27,7 @@ import { ShareMenu, type ShareOption } from '@/components/share/share-menu'
 import { getSupportMessages, type SupportMessage } from '@/lib/support'
 import { uploadPostFile } from '@/lib/storage'
 import { MediaEmbed } from '@/components/posts/media-embed'
+import { embeddedCount } from '@/lib/interactions'
 import { type ArticleDoc } from '@/lib/article'
 
 const CREATOR_TYPES = [
@@ -53,6 +54,8 @@ interface Post {
   media_urls: string[] | null
   body?: ArticleDoc | null
   created_at: string
+  post_likes?: { count: number }[]
+  post_comments?: { count: number }[]
 }
 
 interface Goal {
@@ -147,7 +150,7 @@ function DashboardContent() {
     setLoadingData(true)
     try {
       const [{ data: postsData }, { data: goalData }, supportsData] = await Promise.all([
-        client.from('posts').select('*').eq('creator_id', user.id).order('created_at', { ascending: false }),
+        client.from('posts').select('*, post_likes(count), post_comments(count)').eq('creator_id', user.id).order('created_at', { ascending: false }),
         client.from('goals').select('*').eq('creator_id', user.id).eq('is_active', true).limit(1).maybeSingle(),
         getSupportMessages(client, user.id, 60),
       ])
@@ -839,6 +842,12 @@ function DashboardContent() {
                                     <ExternalLink className="w-3 h-3" /> Ver
                                   </a>
                                 )}
+                                <span className="inline-flex items-center gap-1 text-[10px] text-muted2" title="Me gusta">
+                                  <Heart className="w-3 h-3" /> {embeddedCount(post.post_likes)}
+                                </span>
+                                <span className="inline-flex items-center gap-1 text-[10px] text-muted2" title="Comentarios">
+                                  <MessageCircle className="w-3 h-3" /> {embeddedCount(post.post_comments)}
+                                </span>
                               </div>
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
