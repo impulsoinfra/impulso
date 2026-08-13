@@ -19,13 +19,14 @@ import {
   FileText, Target, User, Plus, Trash2, ExternalLink,
   Loader2, CheckCircle, AlertCircle, Camera, Pencil,
   DollarSign, Wallet, Upload, Heart, Star, Eye,
-  PenLine, ArrowRight,
+  PenLine, ArrowRight, AlignLeft, Images, PlayCircle,
 } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { ShareMenu, type ShareOption } from '@/components/share/share-menu'
 import { getSupportMessages, type SupportMessage } from '@/lib/support'
 import { uploadPostFile } from '@/lib/storage'
+import { MediaEmbed } from '@/components/posts/media-embed'
 import { type ArticleDoc } from '@/lib/article'
 
 const CREATOR_TYPES = [
@@ -33,12 +34,15 @@ const CREATOR_TYPES = [
   'Podcasters', 'Streamers', 'Creadores de video', 'Emprendedores', 'Ilustradores',
 ]
 
+// Post-type selector (style guide §4): 4 pills, each swaps the fields below.
+// Audio isn't a separate type — Spotify/SoundCloud enter through Video/Música
+// via embed. Values map to the existing DB post_type ('link' = embed).
 const POST_TYPES = [
-  { value: 'text', label: 'Texto' },
-  { value: 'link', label: 'Link / Video' },
-  { value: 'image', label: 'Imagen' },
-  { value: 'audio', label: 'Audio' },
-]
+  { value: 'text', label: 'Texto', icon: AlignLeft },
+  { value: 'image', label: 'Imágenes', icon: Images },
+  { value: 'link', label: 'Video/Música', icon: PlayCircle },
+  { value: 'article', label: 'Artículo', icon: FileText },
+] as const
 
 interface Post {
   id: string
@@ -201,7 +205,10 @@ function DashboardContent() {
     const client = getClient()
     const isImage = postType === 'image'
     if (!user || !client) return
-    if (!postContent.trim() && (isImage ? postImages.length === 0 : !postMediaUrl.trim())) return
+    // Per-type minimum: text needs content, images need a photo, video/música a link.
+    if (postType === 'text' && !postContent.trim()) return
+    if (isImage && postImages.length === 0) return
+    if (postType === 'link' && !postMediaUrl.trim()) return
     setSavingPost(true)
     setPostMsg(null)
     try {
@@ -457,6 +464,13 @@ function DashboardContent() {
     ? `Última: ${formatDistanceToNow(new Date(posts[0].created_at), { locale: es, addSuffix: true })}`
     : 'Sin publicaciones aún'
 
+  // Per-type minimum to enable "Publicar" (article never submits here — it opens the editor).
+  const canSubmitPost =
+    postType === 'text' ? postContent.trim().length > 0
+    : postType === 'image' ? postImages.length > 0
+    : postType === 'link' ? postMediaUrl.trim().length > 0
+    : false
+
   return (
     <div className="min-h-screen bg-crema flex flex-col">
       <Header />
@@ -648,17 +662,52 @@ function DashboardContent() {
                       <form onSubmit={handleCreatePost} className="space-y-3.5">
                         <div>
                           <Label className={labelCls}>Tipo</Label>
-                          <select value={postType} onChange={(e) => setPostType(e.target.value)} className={inputCls}>
-                            {POST_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-                          </select>
+                          <div className="flex gap-1.5 flex-wrap">
+                            {POST_TYPES.map(({ value, label, icon: Icon }) => {
+                              const active = postType === value
+                              return (
+                                <button
+                                  key={value}
+                                  type="button"
+                                  onClick={() => setPostType(value)}
+                                  aria-pressed={active}
+                                  className={`inline-flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-full transition-colors ${
+                                    active
+                                      ? 'bg-rosa text-white'
+                                      : 'bg-white border border-[rgba(27,26,46,0.2)] text-tinta hover:border-rosa/50'
+                                  }`}
+                                >
+                                  <Icon className={`w-3.5 h-3.5 ${active ? 'text-white' : 'text-txt2'}`} /> {label}
+                                </button>
+                              )
+                            })}
+                          </div>
                         </div>
+
+                        {postType === 'article' ? (
+                          // Articles aren't written inline — send the creator to the full-page editor.
+                          <Link
+                            href="/dashboard/write"
+                            className="block bg-crema border border-dashed border-borde rounded-lg p-5 text-center hover:border-rosa/50 transition-colors"
+                          >
+                            <FileText className="w-7 h-7 text-rosa mx-auto mb-2" />
+                            <p className="font-semibold text-tinta text-[13px] mb-0.5">Escribir un artículo</p>
+                            <p className="text-[11px] text-muted2 mb-3 max-w-[240px] mx-auto leading-snug">
+                              Textos largos con imágenes, títulos y citas — a pantalla completa.
+                            </p>
+                            <span className="inline-flex items-center gap-1.5 text-rosa text-[13px] font-semibold">
+                              Abrir editor <ArrowRight className="w-4 h-4" />
+                            </span>
+                          </Link>
+                        ) : (
+                        <>
                         <div>
                           <Label htmlFor="post-title" className={labelCls}>Título (opcional)</Label>
                           <input id="post-title" value={postTitle} onChange={(e) => setPostTitle(e.target.value)} placeholder="Título de la publicación" className={inputCls} />
                         </div>
                         <div>
                           <Label htmlFor="post-content" className={labelCls}>
-                            {postType === 'image' ? 'Descripción (opcional)' : 'Contenido *'}
+                            {postType === 'text' ? 'Contenido *' : 'Descripción (opcional)'}
                           </Label>
                           <Textarea id="post-content" value={postContent} onChange={(e) => setPostContent(e.target.value)} placeholder="¿Qué querés compartir?" rows={4} />
                         </div>
@@ -712,26 +761,31 @@ function DashboardContent() {
                           </div>
                         )}
 
-                        {(postType === 'link' || postType === 'audio') && (
+                        {postType === 'link' && (
                           <div>
-                            <Label htmlFor="post-url" className={labelCls}>URL</Label>
+                            <Label htmlFor="post-url" className={labelCls}>Link de YouTube o Spotify</Label>
                             <input id="post-url" value={postMediaUrl} onChange={(e) => setPostMediaUrl(e.target.value)} placeholder="https://..." className={inputCls} />
                             <p className="text-[10px] text-muted2 mt-1">
                               YouTube, Vimeo, Spotify y SoundCloud se reproducen embebidos. Instagram, TikTok y X muestran una tarjeta con link.
                             </p>
+                            {/^https?:\/\//i.test(postMediaUrl.trim()) && (
+                              <div className="mt-2.5">
+                                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted2 mb-1.5">Vista previa</p>
+                                <MediaEmbed url={postMediaUrl.trim()} title={postTitle || null} />
+                              </div>
+                            )}
                           </div>
                         )}
                         {postMsg && <Feedback ok={postMsg.ok} text={postMsg.text} />}
                         <button
                           type="submit"
                           className={`w-full ${primaryBtn}`}
-                          disabled={
-                            savingPost || uploadingPostImage ||
-                            (!postContent.trim() && (postType === 'image' ? postImages.length === 0 : !postMediaUrl.trim()))
-                          }
+                          disabled={savingPost || uploadingPostImage || !canSubmitPost}
                         >
                           {savingPost && <Loader2 className="w-4 h-4 animate-spin" />} Publicar
                         </button>
+                        </>
+                        )}
                       </form>
                     </div>
                   </div>
