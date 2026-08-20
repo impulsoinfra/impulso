@@ -597,18 +597,10 @@ function DashboardContent() {
               </div>
             </div>
 
-            {/* Net earnings note — the goal bar shows gross; clarify take-home */}
-            {goal && Number(goal.current_amount) > 0 ? (
-              <p className="text-[11px] text-muted2 mb-6">
-                De <span className="font-semibold text-txt2">${Number(goal.current_amount).toLocaleString('es-AR')}</span> recaudados,
-                Impulso retiene <span className="font-semibold text-txt2">${Math.round(Number(goal.current_amount) * 0.1).toLocaleString('es-AR')}</span> (10%).
-                Recibís <span className="font-semibold text-txt2">${Math.round(Number(goal.current_amount) * 0.9).toLocaleString('es-AR')}</span> menos la comisión de MercadoPago.
-              </p>
-            ) : (
-              <p className="text-[11px] text-muted2 mb-6">
-                Los montos de la meta son en bruto: de cada apoyo recibís el <span className="font-semibold text-txt2">90%</span> (Impulso retiene 10%) menos la comisión de MercadoPago.
-              </p>
-            )}
+            {/* Earnings note — the goal bar shows gross amounts */}
+            <p className="text-[11px] text-muted2 mb-6">
+              Los apoyos van directo a tu cuenta de MercadoPago. Impulso cobra una pequeña comisión por cada apoyo, además de la comisión de procesamiento de MercadoPago.
+            </p>
 
             <Tabs value={tab} onValueChange={setTab}>
               {/* Content tabs only (Mi perfil moved to the header). Scroll-safe on mobile. */}
@@ -1009,7 +1001,7 @@ function DashboardContent() {
                         <p className="font-semibold text-tinta text-sm mb-0.5">Cobros con MercadoPago</p>
                         <p className="text-txt2 text-[12px] max-w-sm">
                           {p.mp_connected
-                            ? 'Tu cuenta está conectada. Los apoyos van directo a tu MercadoPago (Impulso retiene 10%).'
+                            ? 'Tu cuenta está conectada. Los apoyos van directo a tu MercadoPago (Impulso cobra una pequeña comisión).'
                             : 'Conectá tu cuenta para recibir el dinero de tus apoyos directo en MercadoPago.'}
                         </p>
                       </div>

@@ -73,7 +73,8 @@ export const VALIDATION = {
 export const PRICING = {
   MIN_SUPPORT_AMOUNT: 100,
   MAX_SUPPORT_AMOUNT: 100000,
-  PLATFORM_FEE_PERCENTAGE: 0.05, // 5%
+  // The platform commission is not a constant — it lives in the `platform_config`
+  // DB row and is read at request time (see lib/platform-config.ts).
 } as const
 
 // Configuración de redes sociales

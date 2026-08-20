@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getBaseUrl, getUserFromRequest } from '@/lib/api-helpers'
 import { getAdminClient } from '@/lib/supabase-admin'
-import { createPreference, MARKETPLACE_FEE_RATE } from '@/lib/mercadopago'
+import { createPreference } from '@/lib/mercadopago'
+import { getPlatformFeeRate } from '@/lib/platform-config'
 
 export const runtime = 'nodejs'
 
@@ -35,7 +36,10 @@ export async function POST(req: Request) {
     .order('created_at', { ascending: false }).limit(1).maybeSingle()
 
   const supporter = await getUserFromRequest(req) // optional (anonymous donations allowed)
-  const fee = Math.round(amount * MARKETPLACE_FEE_RATE * 100) / 100
+  // Commission is read at request time from platform_config, so it can change
+  // without a redeploy.
+  const feeRate = await getPlatformFeeRate(admin)
+  const fee = Math.round(amount * feeRate * 100) / 100
 
   const { data: donation, error: dErr } = await admin.from('donations').insert({
     creator_id: creatorId,

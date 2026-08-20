@@ -301,3 +301,23 @@ CREATE POLICY "User deletes own comment or post owner moderates" ON public.post_
   );
 
 CREATE INDEX IF NOT EXISTS post_comments_post_idx ON public.post_comments(post_id, created_at DESC);
+
+-- ============================================================
+-- 14. Configuración de la plataforma (comisión editable sin deploy)
+-- ============================================================
+
+-- Fila única con la comisión que cobra Impulso por cada apoyo. El preference
+-- route la lee en runtime (con `getPlatformFeeRate`), así cambiarla es un UPDATE
+-- desde el SQL editor — sin redeploy. Secreta como mp_accounts: RLS sin políticas,
+-- solo la service_role la lee/escribe.
+--   Para cambiar la comisión (ej. a 8%): update public.platform_config set fee_rate = 0.08, updated_at = now();
+CREATE TABLE IF NOT EXISTS public.platform_config (
+  id boolean PRIMARY KEY DEFAULT true,
+  fee_rate numeric(4,3) NOT NULL DEFAULT 0.10 CHECK (fee_rate >= 0 AND fee_rate <= 1),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT platform_config_singleton CHECK (id = true)
+);
+ALTER TABLE public.platform_config ENABLE ROW LEVEL SECURITY;
+
+INSERT INTO public.platform_config (id, fee_rate) VALUES (true, 0.10)
+  ON CONFLICT (id) DO NOTHING;

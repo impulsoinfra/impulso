@@ -7,9 +7,10 @@ const PAYMENTS_URL = 'https://api.mercadopago.com/v1/payments'
 // Argentina auth host (MLA)
 export const MP_AUTH_HOST = 'https://auth.mercadopago.com.ar'
 
-// Marketplace commission (10% of the donation). MP deducts its own fee first,
-// then this marketplace_fee is taken from the remainder; the rest goes to the creator.
-export const MARKETPLACE_FEE_RATE = 0.10
+// The marketplace commission rate lives in the `platform_config` table and is
+// read at request time via `lib/platform-config.ts` (so it can change without a
+// redeploy). MP deducts its own processing fee first, then this marketplace_fee
+// is taken from the remainder; the rest goes to the creator.
 
 export function mpClientId() {
   const v = process.env.MP_CLIENT_ID

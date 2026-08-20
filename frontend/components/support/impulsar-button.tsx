@@ -222,7 +222,7 @@ export function ImpulsarButton({
                 Impulsar ${selectedAmount > 0 ? selectedAmount.toLocaleString('es-AR') : '0'}
               </button>
               <p className="text-center text-xs text-muted2 -mt-1">
-                Pago seguro con MercadoPago · {firstName} recibe el 90%
+                Pago seguro con MercadoPago · el dinero va directo a {firstName}
               </p>
             </>
           )}
