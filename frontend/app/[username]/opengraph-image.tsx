@@ -1,6 +1,7 @@
 import { ImageResponse } from 'next/og'
 import { createServerClient } from '@/lib/supabase-server'
 import { loadOgFonts } from '@/lib/og/fonts'
+import { imageRotationDeg } from '@/lib/og/orientation'
 
 export const runtime = 'edge'
 export const alt = 'Perfil en Impulso'
@@ -94,6 +95,7 @@ export default async function Image({ params }: Props) {
     : 0
 
   const firstName = profile.name?.split(' ')[0] ?? username
+  const avatarRotation = await imageRotationDeg(profile.avatar_url)
 
   return new ImageResponse(
     (
@@ -129,7 +131,7 @@ export default async function Image({ params }: Props) {
                   alt={profile.name}
                   width={130}
                   height={130}
-                  style={{ width: 130, height: 130, borderRadius: 999, objectFit: 'cover', border: `5px solid ${CREMA}` }}
+                  style={{ width: 130, height: 130, borderRadius: 999, objectFit: 'cover', border: `5px solid ${CREMA}`, ...(avatarRotation ? { transform: `rotate(${avatarRotation}deg)` } : {}) }}
                 />
               ) : (
                 <div

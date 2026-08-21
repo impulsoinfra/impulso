@@ -86,19 +86,23 @@ export function BackgroundTexture(): ReactElement {
   )
 }
 
-// Circular avatar (photo) or initials fallback
+// Circular avatar (photo) or initials fallback. `rotateDeg` corrects EXIF
+// orientation (Satori ignores it); the container is square so a 90/180/270
+// rotation still fills the circle.
 export function Avatar({
   url,
   name,
   fallback,
   size,
   borderColor = COLORS.cream,
+  rotateDeg = 0,
 }: {
   url: string | null | undefined
   name: string | null | undefined
   fallback: string
   size: number
   borderColor?: string
+  rotateDeg?: number
 }): ReactElement {
   if (url) {
     // eslint-disable-next-line @next/next/no-img-element
@@ -108,7 +112,14 @@ export function Avatar({
         alt={name ?? ''}
         width={size}
         height={size}
-        style={{ width: size, height: size, borderRadius: 999, objectFit: 'cover', border: `${Math.max(3, size * 0.04)}px solid ${borderColor}` }}
+        style={{
+          width: size,
+          height: size,
+          borderRadius: 999,
+          objectFit: 'cover',
+          border: `${Math.max(3, size * 0.04)}px solid ${borderColor}`,
+          ...(rotateDeg ? { transform: `rotate(${rotateDeg}deg)` } : {}),
+        }}
       />
     )
   }

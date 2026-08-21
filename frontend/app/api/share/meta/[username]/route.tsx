@@ -11,6 +11,7 @@ import {
   BackgroundTexture,
   Avatar,
 } from '@/lib/og/shared'
+import { imageRotationDeg } from '@/lib/og/orientation'
 
 export const runtime = 'edge'
 // Amount changes with every donation — never cache statically.
@@ -69,6 +70,7 @@ export async function GET(req: Request, { params }: Params) {
     : 0
   const subtitle = [profile.creator_type, profile.location].filter(Boolean).join(' · ')
   const profileUrl = `tuimpulso.ar/${username}`
+  const avatarRotation = await imageRotationDeg(profile.avatar_url)
 
   const element =
     format === 'post' ? (
@@ -76,6 +78,7 @@ export async function GET(req: Request, { params }: Params) {
         name={profile.name}
         username={username}
         avatarUrl={profile.avatar_url}
+        avatarRotation={avatarRotation}
         subtitle={subtitle}
         goalTitle={goal?.title ?? null}
         percent={percent}
@@ -88,6 +91,7 @@ export async function GET(req: Request, { params }: Params) {
         name={profile.name}
         username={username}
         avatarUrl={profile.avatar_url}
+        avatarRotation={avatarRotation}
         subtitle={subtitle}
         goalTitle={goal?.title ?? null}
         percent={percent}
@@ -104,6 +108,7 @@ interface CardData {
   name: string
   username: string
   avatarUrl: string | null
+  avatarRotation: number
   subtitle: string
   goalTitle: string | null
   percent: number
@@ -138,7 +143,7 @@ function Story(d: CardData) {
           <Logo unit={6} fontSize={40} />
         </div>
 
-        <Avatar url={d.avatarUrl} name={d.name} fallback={d.username} size={168} />
+        <Avatar url={d.avatarUrl} name={d.name} fallback={d.username} size={168} rotateDeg={d.avatarRotation} />
 
         <div style={{ display: 'flex', fontFamily: 'Anton', fontSize: 78, color: COLORS.cream, marginTop: 30, textAlign: 'center', lineHeight: 1.05 }}>
           {truncate(d.name, 22)}
@@ -215,7 +220,7 @@ function FeedCard(d: CardData) {
         <div style={{ display: 'flex', height: 16, background: COLORS.accent }} />
         <div style={{ display: 'flex', flexDirection: 'column', padding: 56 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-            <Avatar url={d.avatarUrl} name={d.name} fallback={d.username} size={104} borderColor="#fff" />
+            <Avatar url={d.avatarUrl} name={d.name} fallback={d.username} size={104} borderColor="#fff" rotateDeg={d.avatarRotation} />
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'flex', fontSize: 40, fontWeight: 600, color: COLORS.ink }}>{truncate(d.name, 20)}</div>
               <div style={{ display: 'flex', fontSize: 26, color: COLORS.txt2, marginTop: 4 }}>@{d.username}{d.subtitle ? ` · ${d.subtitle}` : ''}</div>

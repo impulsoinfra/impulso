@@ -12,6 +12,7 @@ import {
   type ShareFormat,
 } from '@/lib/og/shared'
 import { getYouTubeId } from '@/lib/media-embed'
+import { imageRotationDeg } from '@/lib/og/orientation'
 
 export const runtime = 'edge'
 export const revalidate = 0
@@ -80,6 +81,7 @@ export async function GET(req: Request, { params }: Params) {
     name: profile?.name ?? '',
     handle,
     avatarUrl: profile?.avatar_url ?? null,
+    avatarRotation: await imageRotationDeg(profile?.avatar_url),
     postType: post.post_type,
     title: post.title ?? '',
     content: post.content ?? '',
@@ -97,6 +99,7 @@ interface PostData {
   name: string
   handle: string
   avatarUrl: string | null
+  avatarRotation: number
   postType: string
   title: string
   content: string
@@ -114,7 +117,7 @@ function accentFor(type: string) {
 function CreatorRow(d: PostData, size: number) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-      <Avatar url={d.avatarUrl} name={d.name} fallback={d.name || 'IM'} size={size} />
+      <Avatar url={d.avatarUrl} name={d.name} fallback={d.name || 'IM'} size={size} rotateDeg={d.avatarRotation} />
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', fontSize: size * 0.42, fontWeight: 600, color: COLORS.cream }}>{truncate(d.name, 22)}</div>
         {d.handle ? (
