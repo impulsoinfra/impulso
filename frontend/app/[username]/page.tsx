@@ -262,10 +262,12 @@ export default async function CreatorProfilePage({ params }: Props) {
                       return (
                         <div
                           key={post.id}
-                          className="bg-white border border-borde rounded-[10px] overflow-hidden"
+                          className="bg-white border border-borde rounded-[10px]"
                           style={{ borderLeft: `4px solid ${accent}` }}
                         >
-                          <Link href={`/${username}/${post.id}`} className="block hover:bg-tinta/[0.015] transition-colors">
+                          {/* overflow-hidden lives on the Link (to clip the cover), NOT the card,
+                              so the footer's share menu below isn't clipped. */}
+                          <Link href={`/${username}/${post.id}`} className="block overflow-hidden rounded-t-[9px] hover:bg-tinta/[0.015] transition-colors">
                             {post.media_url && (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img src={post.media_url} alt={post.title ?? ''} className="w-full h-40 lg:h-48 object-cover" />
