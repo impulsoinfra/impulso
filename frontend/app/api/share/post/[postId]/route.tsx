@@ -13,6 +13,7 @@ import {
 } from '@/lib/og/shared'
 import { getYouTubeId } from '@/lib/media-embed'
 import { imageRotationDeg } from '@/lib/og/orientation'
+import { articleExcerpt, type ArticleDoc } from '@/lib/article'
 
 export const runtime = 'edge'
 export const revalidate = 0
@@ -32,7 +33,7 @@ export async function GET(req: Request, { params }: Params) {
 
   const { data: post } = await supabase
     .from('posts')
-    .select('title, content, media_url, media_urls, post_type, created_at, creator_id')
+    .select('title, content, media_url, media_urls, post_type, created_at, creator_id, body')
     .eq('id', postId)
     .single()
 
@@ -77,6 +78,14 @@ export async function GET(req: Request, { params }: Params) {
     }
   }
 
+  // For the text card, articles get a longer excerpt derived from their rich
+  // body (the stored `content` is capped short for the feed); everything else
+  // uses its content as-is.
+  const cardText =
+    post.post_type === 'article' && post.body
+      ? articleExcerpt(post.body as ArticleDoc, 460)
+      : (post.content ?? '')
+
   const d: PostData = {
     name: profile?.name ?? '',
     handle,
@@ -84,7 +93,7 @@ export async function GET(req: Request, { params }: Params) {
     avatarRotation: await imageRotationDeg(profile?.avatar_url),
     postType: post.post_type,
     title: post.title ?? '',
-    content: post.content ?? '',
+    content: cardText,
     date,
     profileUrl: username ? `tuimpulso.ar/${username}` : 'tuimpulso.ar',
     mediaImageUrl,
@@ -262,7 +271,7 @@ function PostStory(d: PostData) {
         ) : d.mediaImageUrl ? (
           ImageCard(d, 640, 42, 50)
         ) : (
-          TextCard(d, 200)
+          TextCard(d, 400)
         )}
 
         <div style={{ display: 'flex', fontSize: 26, color: 'rgba(251,247,242,0.4)', marginTop: 28, marginBottom: 40 }}>{d.date}</div>
@@ -310,7 +319,7 @@ function PostSquare(d: PostData) {
         ) : d.mediaImageUrl ? (
           ImageCard(d, 400, 34, 40)
         ) : (
-          TextCard(d, 120)
+          TextCard(d, 220)
         )}
 
         <div style={{ display: 'flex', marginTop: 36 }}>{Footer(d, false)}</div>
