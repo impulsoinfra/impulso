@@ -20,11 +20,28 @@ const anton = Anton({
 
 const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://tuimpulso.ar'
 
+const siteTitle = 'Impulso - Apoyá a quienes te inspiran'
+const siteDescription = 'Apoyá a creadores independientes de Argentina. El apoyo va directo a su cuenta de MercadoPago.'
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: 'Impulso - Apoyá a quienes te inspiran',
-  description: 'Plataforma para que artistas independientes reciban apoyo económico de su comunidad a cambio de contenido exclusivo',
-  keywords: 'artistas, apoyo, comunidad, contenido exclusivo, crowdfunding',
+  title: siteTitle,
+  description: siteDescription,
+  keywords: 'creadores, apoyo, comunidad, crowdfunding, MercadoPago, Argentina',
+  // Default social preview for every page without its own. The image comes from
+  // app/opengraph-image.tsx; child routes (profile, post) override title/desc/image.
+  openGraph: {
+    type: 'website',
+    siteName: 'Impulso',
+    title: siteTitle,
+    description: siteDescription,
+    locale: 'es_AR',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: siteTitle,
+    description: siteDescription,
+  },
 }
 
 export const viewport = 'width=device-width, initial-scale=1'
