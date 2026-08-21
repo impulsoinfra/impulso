@@ -301,7 +301,9 @@ export default function DiscoverPage() {
             />
           ) : (
             <PostInteractionsProvider postIds={allPostIds} initialLikeCounts={initialLikeCounts}>
-              <div className="max-w-[560px] mx-auto space-y-2.5">
+              {/* Masonry: 1 column on mobile, more on wider screens so several
+                  posts fit at once and each card is smaller. */}
+              <div className="mx-auto max-w-[560px] md:max-w-[1180px] gap-4 columns-1 md:columns-2 xl:columns-3 [&>*]:mb-4 [&>*]:break-inside-avoid">
                 {filteredPosts.map((post) => (
                   <FeedPostCard
                     key={post.id}
