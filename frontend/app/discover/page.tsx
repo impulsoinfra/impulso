@@ -301,7 +301,7 @@ export default function DiscoverPage() {
             />
           ) : (
             <PostInteractionsProvider postIds={allPostIds} initialLikeCounts={initialLikeCounts}>
-              <div className="max-w-[560px] space-y-2.5">
+              <div className="max-w-[560px] mx-auto space-y-2.5">
                 {filteredPosts.map((post) => (
                   <FeedPostCard
                     key={post.id}
@@ -388,7 +388,7 @@ export default function DiscoverPage() {
               hint={creators.length === 0 ? 'Todavía no hay metas para mostrar.' : 'Probá con otra búsqueda o categoría.'}
             />
           ) : (
-            <div className="max-w-[720px] space-y-2">
+            <div className="max-w-[720px] mx-auto space-y-2">
               {rankedGoals.map((c) => {
                 const pct = Math.min(Math.round((Number(c.goal.current_amount) / Number(c.goal.target_amount)) * 100), 100)
                 const initials = (c.name || c.username).split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
