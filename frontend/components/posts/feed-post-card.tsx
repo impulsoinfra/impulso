@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { BookOpen, ArrowRight } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { PostCarousel } from './post-carousel'
 import { MediaEmbed } from './media-embed'
 import { PostLikeButton, PostCommentLink } from './post-interactions'
 import { ShareMenu, type ShareOption } from '@/components/share/share-menu'
@@ -71,6 +70,8 @@ export function FeedPostCard({ post, shareOptions }: { post: FeedPost; shareOpti
   const badge = badgeStyle(accent)
   const { creator } = post
   const permalink = `/${creator.username}/${post.id}`
+  const firstImage = post.media_urls?.[0] || post.media_url
+  const imageCount = post.media_urls?.length || (post.media_url ? 1 : 0)
   const relTime = formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: es })
   const subtitle = [creator.creator_type, creator.location].filter(Boolean).join(' · ')
   const initials = (creator.name || creator.username)
@@ -179,11 +180,18 @@ export function FeedPostCard({ post, shareOptions }: { post: FeedPost; shareOpti
         <p className="text-[12px] text-txt2 leading-relaxed mb-2 whitespace-pre-wrap line-clamp-6">{post.content}</p>
       )}
 
-      {post.post_type === 'image' && (post.media_urls?.length || post.media_url) && (
-        <PostCarousel
-          images={post.media_urls?.length ? post.media_urls : post.media_url ? [post.media_url] : []}
-          alt={post.title ?? undefined}
-        />
+      {post.post_type === 'image' && firstImage && (
+        // Compact cover (height-capped so a tall photo doesn't fill the screen);
+        // links to the permalink where the full image / carousel lives.
+        <Link href={permalink} className="relative block overflow-hidden rounded-lg border border-borde mb-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={firstImage} alt={post.title ?? ''} className="w-full max-h-[260px] object-cover" />
+          {imageCount > 1 && (
+            <span className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
+              +{imageCount - 1}
+            </span>
+          )}
+        </Link>
       )}
       {post.post_type !== 'image' && post.media_url && <MediaEmbed url={post.media_url} title={post.title} />}
 
