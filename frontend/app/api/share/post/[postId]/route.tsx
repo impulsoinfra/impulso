@@ -218,6 +218,51 @@ function ImageCard(d: PostData, height: number, titleFont: number, titleMax: num
   )
 }
 
+// Article layout: a smaller (uncropped) cover + the title + a body excerpt, so
+// the share image previews the writing instead of only the cover art.
+function ArticleCard(
+  d: PostData,
+  coverHeight: number,
+  titleFont: number,
+  titleMax: number,
+  excerptFont: number,
+  excerptMax: number
+) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', marginTop: 32 }}>
+      {d.mediaImageUrl ? (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '100%',
+            height: coverHeight,
+            borderRadius: 18,
+            overflow: 'hidden',
+            border: '1px solid rgba(251,247,242,0.12)',
+            background: 'rgba(251,247,242,0.05)',
+            marginBottom: 26,
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={d.mediaImageUrl} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        </div>
+      ) : null}
+      {d.title ? (
+        <div style={{ display: 'flex', fontSize: titleFont, fontWeight: 700, color: COLORS.cream, lineHeight: 1.15 }}>
+          {truncate(d.title, titleMax)}
+        </div>
+      ) : null}
+      {d.content ? (
+        <div style={{ display: 'flex', fontSize: excerptFont, color: 'rgba(251,247,242,0.72)', lineHeight: 1.5, marginTop: 16 }}>
+          {truncate(d.content, excerptMax)}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 function Footer(d: PostData, withLabel: boolean) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
@@ -271,6 +316,8 @@ function PostStory(d: PostData) {
               <div style={{ display: 'flex', fontSize: 28, color: 'rgba(251,247,242,0.75)' }}>♫ Escuchalo completo en Impulso</div>
             </div>
           </div>
+        ) : d.postType === 'article' ? (
+          ArticleCard(d, 300, 40, 66, 30, 320)
         ) : d.mediaImageUrl ? (
           ImageCard(d, 640, 42, 50)
         ) : (
@@ -319,6 +366,8 @@ function PostSquare(d: PostData) {
               {truncate(d.title || 'Nuevo audio', 34)}
             </div>
           </div>
+        ) : d.postType === 'article' ? (
+          ArticleCard(d, 220, 34, 54, 26, 180)
         ) : d.mediaImageUrl ? (
           ImageCard(d, 400, 34, 40)
         ) : (
