@@ -166,14 +166,14 @@ export default async function PostPage({ params }: Props) {
                   </h1>
                 )}
 
-                <Byline profile={profile} username={username} createdAt={post.created_at} minutes={minutes} shareOptions={shareOptions} />
+                <Byline profile={profile} username={username} createdAt={post.created_at} minutes={minutes} shareOptions={shareOptions} postId={post.id} postTitle={post.title} />
 
                 {/* Body */}
                 <ArticleContent doc={body} />
               </>
             ) : (
               <>
-                <Byline profile={profile} username={username} createdAt={post.created_at} minutes={0} shareOptions={shareOptions} />
+                <Byline profile={profile} username={username} createdAt={post.created_at} minutes={0} shareOptions={shareOptions} postId={post.id} postTitle={post.title} />
 
                 {post.title && (
                   <h1 className="disp text-tinta text-[22px] md:text-[28px] leading-tight mb-3">{post.title}</h1>
@@ -251,12 +251,16 @@ function Byline({
   createdAt,
   minutes,
   shareOptions,
+  postId,
+  postTitle,
 }: {
   profile: PostProfile
   username: string
   createdAt: string
   minutes: number
   shareOptions: ShareOption[]
+  postId: string
+  postTitle: string | null
 }) {
   const initials = profile.name
     ? profile.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
@@ -289,7 +293,19 @@ function Byline({
         </div>
       </Link>
 
-      <ShareMenu options={shareOptions} triggerLabel="Compartir" align="responsive" />
+      <div className="flex items-center gap-2">
+        <ShareMenu options={shareOptions} triggerLabel="Compartir" align="responsive" />
+        <ImpulsarButton
+          creatorId={profile.id}
+          creatorName={profile.name}
+          creatorUsername={username}
+          postId={postId}
+          postTitle={postTitle}
+          creatorConnected={!!profile.mp_connected}
+          variant="primary"
+          label="Apoyar"
+        />
+      </div>
     </div>
   )
 }
