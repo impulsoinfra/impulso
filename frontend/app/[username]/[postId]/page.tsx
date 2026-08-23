@@ -10,6 +10,7 @@ import { PostCarousel } from '@/components/posts/post-carousel'
 import { MediaEmbed } from '@/components/posts/media-embed'
 import { PostInteractionsProvider, PostLikeButton, PostCommentLink } from '@/components/posts/post-interactions'
 import { PostComments } from '@/components/posts/post-comments'
+import { EditArticleButton } from '@/components/posts/edit-article-button'
 import { articleExcerpt, readingTimeMinutes, firstArticleImage, type ArticleDoc } from '@/lib/article'
 import { embeddedCount } from '@/lib/interactions'
 import { ArrowLeft, Calendar, Clock } from 'lucide-react'
@@ -136,12 +137,15 @@ export default async function PostPage({ params }: Props) {
       <article className="bg-crema pb-16">
         <div className="wrap">
           <div className={`${maxW} mx-auto pt-6`}>
-            <Link
-              href={`/${username}`}
-              className="inline-flex items-center gap-1.5 text-muted2 hover:text-tinta text-[13px] font-medium transition-colors mb-5"
-            >
-              <ArrowLeft className="w-4 h-4" /> Volver al perfil
-            </Link>
+            <div className="flex items-center justify-between gap-3 mb-5">
+              <Link
+                href={`/${username}`}
+                className="inline-flex items-center gap-1.5 text-muted2 hover:text-tinta text-[13px] font-medium transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" /> Volver al perfil
+              </Link>
+              {isArticle && <EditArticleButton postId={post.id} creatorId={post.creator_id} />}
+            </div>
 
             {isArticle ? (
               <>

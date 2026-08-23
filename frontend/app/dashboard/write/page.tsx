@@ -42,6 +42,43 @@ function WriteArticleContent() {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const coverInputRef = useRef<HTMLInputElement>(null)
 
+  // Edit mode: /dashboard/write?id=<postId> loads an existing article to update.
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [loadingArticle, setLoadingArticle] = useState(true)
+  const [loadFailed, setLoadFailed] = useState(false)
+  const loadedRef = useRef(false)
+
+  // Read the ?id param and, if present, load that article (owner only). The
+  // ArticleEditor seeds its content once on mount, so we must have `body` ready
+  // before it renders — hence the loading gate below.
+  useEffect(() => {
+    if (loadedRef.current) return
+    const id = new URLSearchParams(window.location.search).get('id')
+    if (!id) { loadedRef.current = true; setLoadingArticle(false); return }
+    setEditingId(id)
+    const client = getClient()
+    if (!user || !client) return // effect re-runs once auth is ready
+    loadedRef.current = true
+    ;(async () => {
+      const { data, error } = await client
+        .from('posts')
+        .select('title, media_url, body, post_type, creator_id')
+        .eq('id', id)
+        .single()
+      if (error || !data || data.creator_id !== user.id || data.post_type !== 'article') {
+        setLoadFailed(true)
+        setLoadingArticle(false)
+        return
+      }
+      setTitle(data.title ?? '')
+      setCover(data.media_url ?? null)
+      setBody((data.body as ArticleDoc) ?? null)
+      setLoadingArticle(false)
+    })()
+  }, [user, getClient])
+
+  const isEditing = !!editingId
+
   const uploadImage = async (file: File) => {
     const client = getClient()
     if (!user || !client) throw new Error('No autenticado')
@@ -71,18 +108,34 @@ function WriteArticleContent() {
     if (isArticleEmpty(body)) { setMsg({ ok: false, text: 'El artículo está vacío.' }); return }
     setSaving(true)
     setMsg(null)
+    // Fields shared by create and update; creator_id/post_type stay as-is on edit.
+    const fields = {
+      title: title.trim(),
+      content: articleExcerpt(body, 240),
+      body,
+      media_url: cover ?? firstArticleImage(body),
+    }
     try {
+      if (editingId) {
+        const { error } = await client
+          .from('posts')
+          .update(fields)
+          .eq('id', editingId)
+          .eq('creator_id', user.id)
+        if (error) {
+          setMsg({ ok: false, text: 'Error al guardar los cambios. Intentá de nuevo.' })
+          setSaving(false)
+          return
+        }
+        // Show the updated article (refresh clears the router cache of the old version).
+        router.push(`/${username}/${editingId}`)
+        router.refresh()
+        return
+      }
+
       const { data, error } = await client
         .from('posts')
-        .insert({
-          creator_id: user.id,
-          title: title.trim(),
-          content: articleExcerpt(body, 240),
-          post_type: 'article',
-          body,
-          media_url: cover ?? firstArticleImage(body),
-          media_urls: null,
-        })
+        .insert({ creator_id: user.id, post_type: 'article', media_urls: null, ...fields })
         .select('id')
         .single()
       if (error || !data) {
@@ -93,7 +146,7 @@ function WriteArticleContent() {
       // Send the writer to their freshly published article.
       router.push(`/${username}/${data.id}`)
     } catch (err) {
-      console.error('[publish article]', err)
+      console.error('[save article]', err)
       setMsg({ ok: false, text: 'Error inesperado. Intentá de nuevo.' })
       setSaving(false)
     }
@@ -108,17 +161,33 @@ function WriteArticleContent() {
         <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-txt2 hover:text-tinta text-[13px] font-medium transition-colors">
           <ArrowLeft className="w-4 h-4" /> Salir
         </Link>
-        <span className="disp text-tinta text-[15px] uppercase tracking-wide hidden sm:block">Nuevo artículo</span>
+        <span className="disp text-tinta text-[15px] uppercase tracking-wide hidden sm:block">
+          {isEditing ? 'Editar artículo' : 'Nuevo artículo'}
+        </span>
         <button
           onClick={handlePublish}
-          disabled={!canPublish}
+          disabled={!canPublish || loadingArticle}
           className="bg-rosa hover:bg-rosa-hover text-white rounded-lg px-5 py-2 text-sm font-semibold inline-flex items-center gap-2 disabled:opacity-50 transition-colors"
         >
-          {saving && <Loader2 className="w-4 h-4 animate-spin" />} Publicar
+          {saving && <Loader2 className="w-4 h-4 animate-spin" />} {isEditing ? 'Guardar cambios' : 'Publicar'}
         </button>
       </div>
 
       {/* Writing canvas */}
+      {loadingArticle ? (
+        <div className="max-w-[760px] mx-auto px-5 py-24 flex justify-center">
+          <Loader2 className="w-6 h-6 animate-spin text-rosa/60" />
+        </div>
+      ) : loadFailed ? (
+        <div className="max-w-[760px] mx-auto px-5 py-24 text-center">
+          <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-3" />
+          <p className="text-tinta font-semibold text-sm">No pudimos abrir este artículo para editar.</p>
+          <p className="text-txt2 text-[13px] mt-1">Puede que no exista o que no sea tuyo.</p>
+          <Link href="/dashboard" className="inline-block mt-4 text-rosa hover:text-rosa-hover text-[13px] font-semibold">
+            Volver al panel
+          </Link>
+        </div>
+      ) : (
       <div className="max-w-[760px] mx-auto px-5 py-8">
         {/* Cover */}
         {cover ? (
@@ -179,6 +248,7 @@ function WriteArticleContent() {
           </div>
         )}
       </div>
+      )}
     </div>
   )
 }

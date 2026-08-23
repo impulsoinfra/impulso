@@ -834,6 +834,14 @@ function DashboardContent() {
                                     <ExternalLink className="w-3 h-3" /> Ver
                                   </a>
                                 )}
+                                {post.post_type === 'article' && (
+                                  <Link
+                                    href={`/dashboard/write?id=${post.id}`}
+                                    className="inline-flex items-center gap-1 text-[10px] font-medium text-txt2 hover:text-rosa transition-colors"
+                                  >
+                                    <Pencil className="w-3 h-3" /> Editar
+                                  </Link>
+                                )}
                                 <span className="inline-flex items-center gap-1 text-[10px] text-muted2" title="Me gusta">
                                   <Heart className="w-3 h-3" /> {embeddedCount(post.post_likes)}
                                 </span>
