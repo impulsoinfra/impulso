@@ -193,12 +193,15 @@ function TextCard(d: PostData, excerptMax: number) {
 }
 
 // Shows the actual post image (or the video thumbnail) + the title as a caption.
+// Article covers are designed graphics, so they're shown whole ('contain', with a
+// subtle frame) instead of cropped; photos/videos still fill the box ('cover').
 function ImageCard(d: PostData, height: number, titleFont: number, titleMax: number) {
+  const contain = d.postType === 'article'
   return (
     <div style={{ display: 'flex', flexDirection: 'column', marginTop: 32 }}>
-      <div style={{ display: 'flex', position: 'relative', width: '100%', height, borderRadius: 18, overflow: 'hidden', border: '1px solid rgba(251,247,242,0.12)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', width: '100%', height, borderRadius: 18, overflow: 'hidden', border: '1px solid rgba(251,247,242,0.12)', background: contain ? 'rgba(251,247,242,0.05)' : undefined }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={d.mediaImageUrl as string} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <img src={d.mediaImageUrl as string} style={{ width: '100%', height: '100%', objectFit: contain ? 'contain' : 'cover' }} />
         {d.mediaKind === 'video' ? (
           <div style={{ position: 'absolute', top: 20, left: 20, display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(0,0,0,0.6)', borderRadius: 999, padding: '10px 20px' }}>
             <div style={{ display: 'flex', width: 0, height: 0, borderTop: '10px solid transparent', borderBottom: '10px solid transparent', borderLeft: '16px solid #fff' }} />
